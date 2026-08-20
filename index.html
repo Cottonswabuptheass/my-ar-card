@@ -44,32 +44,38 @@
 
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-      <a-entity mindar-image-target="targetIndex: 0" id="target">
-        <a-video src="#hardware-video" width="1.78" height="1" position="0 0 0" rotation="0 0 0"></a-video>
-      <a-entity mindar-image-target="targetIndex: 1">
+     <a-entity mindar-image-target="targetIndex: 0" id="target">
+  <a-video src="#hardware-video" width="1.78" height="1" position="0 0 0" rotation="0 0 0"></a-video>
+</a-entity>
+
+<a-entity mindar-image-target="targetIndex: 1" id="target2">
   <a-video src="#ram-video" width="1.78" height="1" position="0 0 0" rotation="0 0 0"></a-video>
 </a-entity>
-      </a-entity>
 
     </a-scene>
 
     <script>
-      const video = document.querySelector('#hardware-video');
-      const playButton = document.querySelector('#play-button');
-      const target = document.querySelector('#target');
+  const playButton = document.querySelector('#play-button');
+  const video1 = document.querySelector('#hardware-video');
+  const video2 = document.querySelector('#ram-video');
 
-      playButton.addEventListener('click', () => {
-        video.play();
-        playButton.style.display = 'none';
-      });
+  const target1 = document.querySelector('#target');
+  const target2 = document.querySelector('#target2');
 
-      target.addEventListener("targetFound", event => {
-        video.play();
-      });
+  // กดปุ่มแล้วเริ่มสั่งให้เตรียมพร้อมเล่นวิดีโอ (ปลดล็อกระบบเสียง)
+  playButton.addEventListener('click', () => {
+    video1.play(); video1.pause();
+    video2.play(); video2.pause();
+    playButton.style.display = 'none';
+  });
 
-      target.addEventListener("targetLost", event => {
-        video.pause();
-      });
-    </script>
+  // รูปที่ 1 (การ์ดจอ)
+  target1.addEventListener("targetFound", () => video1.play());
+  target1.addEventListener("targetLost", () => video1.pause());
+
+  // รูปที่ 2 (RAM)
+  target2.addEventListener("targetFound", () => video2.play());
+  target2.addEventListener("targetLost", () => video2.pause());
+</script>
   </body>
 </html>
