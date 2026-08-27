@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+  <style>#play-button{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:999;padding:12px 24px;font-size:16px;font-weight:bold;background:#007bff;color:#fff;border:none;border-radius:8px;cursor:pointer;box-shadow:0 4px 6px rgba(0,0,0,0.3);}</style>
+</head>
+<body>
+<button id="play-button">แตะเพื่อเปิดเสียง GPU</button>
+<a-scene mindar-image="imageTargetSrc: ./targets.mind;" color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+  <a-assets><video id="video" src="./v-gpu.mp4" preload="auto" loop crossorigin="anonymous" webkit-playsinline playsinline></video></a-assets>
+  <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+  <a-entity mindar-image-target="targetIndex: 1" id="target"><a-video src="#video" width="1.78" height="1" position="0 0 0"></a-video></a-entity>
+</a-scene>
+<script>
+  const btn = document.querySelector('#play-button'), vid = document.querySelector('#video'), target = document.querySelector('#target');
+  btn.addEventListener('click', () => { vid.play(); vid.pause(); btn.style.display='none'; });
+  target.addEventListener("targetFound", () => vid.play());
+  target.addEventListener("targetLost", () => vid.pause());
+</script>
+</body>
+</html>
