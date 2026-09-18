@@ -14,7 +14,6 @@
   <style>
     body { margin: 0; overflow: hidden; font-family: 'Tahoma', sans-serif; }
     
-    /* การ์ดข้อมูลด้านล่างจอ */
     #info-card {
       position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
       width: 88%; max-width: 400px; background: rgba(15, 23, 42, 0.9);
@@ -24,14 +23,11 @@
     }
     #info-card h4 { margin: 0 0 6px 0; color: #38bdf8; font-size: 18px; }
     #info-card p { margin: 0; font-size: 13px; color: #e2e8f0; line-height: 1.5; }
-    
-    /* คำแนะนำการหมุน/ซูม */
     .hint { font-size: 11px; color: #94a3b8; margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 6px; }
   </style>
 </head>
 <body>
 
-  <!-- กล่องข้อมูลคงที่ด้านล่าง -->
   <div id="info-card">
     <h4 id="card-title">กำลังโหลด...</h4>
     <p id="card-desc">ส่องกล้องไปที่รูปภาพเพื่อดูโมเดล 3D</p>
@@ -39,13 +35,17 @@
   </div>
 
   <a-scene 
-    mindar-image="imageTargetSrc: ./targets.mind;" 
+    mindar-image="imageTargetSrc: ./targets.mind; filterMinCF:0.0001; filterBeta: 0.001;" 
     color-space="sRGB" 
-    renderer="colorManagement: true, physicallyCorrectLights" 
+    renderer="colorManagement: true; precision: medium; antialias: false;" 
     vr-mode-ui="enabled: false" 
     device-orientation-permission-ui="enabled: false"
     gesture-detector>
     
+    <!-- แสงช่วยลดภาระเครื่อง ป้องกันการกระตุก -->
+    <a-ambient-light color="#ffffff" intensity="1.2"></a-ambient-light>
+    <a-directional-light color="#ffffff" intensity="0.8" position="1 2 1"></a-directional-light>
+
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
     <!-- พื้นที่สร้าง AR -->
@@ -58,14 +58,12 @@
     function loadARItem(itemData) {
       if (!itemData) return;
 
-      // แสดงข้อมูลการ์ดทันที
       document.getElementById('card-title').innerText = itemData.title || 'ข้อมูลอุปกรณ์';
       document.getElementById('card-desc').innerText = itemData.desc || '';
 
       const targetEntity = document.createElement('a-entity');
       targetEntity.setAttribute('mindar-image-target', `targetIndex: ${itemData.targetIndex}`);
 
-      // ตัวโมเดล 3D รองรับการลากหมุน และ ถ่างนิ้วซูม
       const modelEntity = document.createElement('a-entity');
       modelEntity.setAttribute('gltf-model', itemData.model);
       modelEntity.setAttribute('scale', itemData.scale || '0.08 0.08 0.08');
@@ -73,8 +71,8 @@
       modelEntity.setAttribute('rotation', itemData.rotation || '0 0 0');
       modelEntity.setAttribute('class', 'clickable');
       
-      // สคริปต์ควบคุมการหมุนและซูมด้วยนิ้ว
-      modelEntity.setAttribute('gesture-handler', 'minScale: 0.01; maxScale: 1.0;');
+      // เพิ่มความลื่นไหลในการหมุน (rotationFactor) และปรับค่าการซูม
+      modelEntity.setAttribute('gesture-handler', 'minScale: 0.01; maxScale: 0.5; rotationFactor: 5;');
 
       targetEntity.appendChild(modelEntity);
       container.appendChild(targetEntity);
