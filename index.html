@@ -2,59 +2,236 @@
 <html lang="th">
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>AR Graphics Card Guide (Improved)</title>
-  <!-- โหลด A-Frame เวอร์ชั่นล่าสุดและ MindAR สำหรับ A-Frame -->
+  <title>AR Hardware Guide</title>
+
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
-  <!-- โหลดสคริปต์สำหรับจัดการการหมุน/ซูมด้วยนิ้ว -->
-  <script src="https://raw.githack.com/fcor/aframe-gesture-detector/master/dist/aframe-gesture-detector.min.js"></script>
+  <script src="./js/gpu.js"></script>
+
+  <style>
+    html, body {
+      margin: 0; padding: 0; width: 100%; height: 100%;
+      overflow: hidden; font-family: 'Tahoma', sans-serif;
+      background: transparent !important;
+    }
+
+    a-scene {
+      background: transparent !important;
+    }
+
+    /* การ์ดข้อมูลอุปกรณ์ */
+    #info-card {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      width: 88%; max-width: 400px; background: rgba(15, 23, 42, 0.92);
+      backdrop-filter: blur(12px); border: 1px solid rgba(56, 189, 248, 0.5);
+      color: #ffffff; padding: 16px 20px; border-radius: 16px; z-index: 1000;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+      display: none; animation: fadeInUp 0.4s ease-out;
+    }
+    #info-card h4 { margin: 0 0 6px 0; color: #38bdf8; font-size: 18px; }
+    #info-card p { margin: 0; font-size: 13px; color: #e2e8f0; line-height: 1.5; }
+    .hint { font-size: 11px; color: #94a3b8; margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 6px; }
+
+    /* ข้อความแนะนำ */
+    #scan-guide {
+      position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.7); color: #fff; padding: 8px 16px;
+      border-radius: 20px; font-size: 13px; border: 1px solid rgba(255,255,255,0.2);
+      z-index: 1000; pointer-events: none;
+    }
+
+    /* ปุ่มสแกนใหม่ / ย้อนกลับ */
+    #reset-btn {
+      position: fixed; top: 20px; right: 20px;
+      background: #0284c7; color: #ffffff;
+      border: none; padding: 10px 18px; border-radius: 25px;
+      font-size: 13px; font-weight: bold;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      display: none; z-index: 1001; cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+    #reset-btn:active {
+      transform: scale(0.95); background: #0369a1;
+    }
+
+    #error-log {
+      position: fixed; top: 70px; left: 5%; width: 90%;
+      background: rgba(220, 38, 38, 0.85); color: white;
+      padding: 10px; border-radius: 8px; font-size: 12px;
+      z-index: 9999; display: none; word-break: break-all;
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translate(-50%, 20px); }
+      to { opacity: 1; transform: translate(-50%, 0); }
+    }
+  </style>
 </head>
-<body style="margin: 0; overflow: hidden;">
-  <!-- พื้นหลังดำป้องกันแสงแยงตา -->
+<body>
+
+  <div id="scan-guide">🔍 ส่องกล้องไปที่รูปภาพเป้าหมาย</div>
+  <button id="reset-btn" onclick="resetScanner()">🔄 สแกนใหม่</button>
+  <div id="error-log"></div>
+
+  <div id="info-card">
+    <h4 id="card-title">กำลังโหลด...</h4>
+    <p id="card-desc">...</p>
+    <div class="hint">💡 ใช้นิ้วลากเพื่อหมุน | ถ่างนิ้วเพื่อซูมเข้า-ออก</div>
+  </div>
+
   <a-scene 
-    mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; maxTrack: 2; uiLoading: no; filter: strong;" 
-    gesture-detector
+    mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; uiLoading: no; uiError: no;" 
+    embedded
     color-space="sRGB" 
-    renderer="colorManagement: true; precision: high; alpha: true;" 
+    renderer="colorManagement: true; precision: medium; alpha: true;" 
     vr-mode-ui="enabled: false" 
     device-orientation-permission-ui="enabled: false">
     
-    <a-ambient-light color="#bbb" intensity="1.5"></a-ambient-light>
-    <a-directional-light position="1 2 3" intensity="1.2"></a-directional-light>
+    <a-ambient-light color="#ffffff" intensity="2.0"></a-ambient-light>
+    <a-directional-light position="1 2 3" intensity="1.5"></a-directional-light>
+    
+    <a-camera id="main-camera" position="0 0 0" look-controls="enabled: false">
+      <a-entity id="camera-freeze-container" position="0 0 -2.5"></a-entity>
+    </a-camera>
 
-    <!-- กล้องที่มาพร้อมกับ look-controls สำหรับ gesture และมี embedded เพื่อให้เห็นกล้องด้านหลัง -->
-    <a-camera position="0 0 0" look-controls="enabled: true" embedded></a-camera>
-
-    <!-- คอนเทนเนอร์หลักสำหรับเก็บ Target และ Model -->
-    <a-entity id="ar-container">
-      <a-entity id="card-target" mindar-image-target="targetIndex: 0" visible="false">
-        <!-- โมเดลที่เพิ่มคอมโพเนนต์สำหรับหมุนและซูม -->
-        <a-entity id="gpu-model"
-                  gltf-model="./gpu.glb"
-                  scale="0.2 0.2 0.2"
-                  class="gesture-target"
-                  gesture-handler="minScale: 0.1; maxScale: 1.0; rotationMultiplier: 2;"
-                  visible="true"></a-entity>
-      </a-entity>
-    </a-entity>
+    <a-entity id="ar-container"></a-entity>
   </a-scene>
 
   <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      const sceneEl = document.querySelector('a-scene');
-      const targetEntity = document.getElementById('card-target');
-      let isFound = false;
+    window.onerror = function(msg, url, lineNo, columnNo, error) {
+      const log = document.getElementById('error-log');
+      log.style.display = 'block';
+      log.innerHTML = '⚠️ เกิดข้อผิดพลาด: ' + msg;
+      return false;
+    };
 
-      // เมื่อสแกนเจอ: หยุดระบบติดตามภาพ และล็อกโมเดลไว้ให้ลอยค้างหน้าจอ
-      targetEntity.addEventListener("targetFound", (event) => {
-        if (!isFound) {
-          isFound = true;
-          // แสดงโมเดลและหยุดติดตามเป้าหมายทันที
-          sceneEl.setAttribute('mindar-image', 'autoStart', 'false');
-          targetEntity.setAttribute('visible', 'true');
-          console.log("เป้าหมายถูกล็อก! โมเดลจะไม่หายแม้คุณจะแพนกล้องหนี");
+    const container = document.getElementById('ar-container');
+    const freezeContainer = document.getElementById('camera-freeze-container');
+    
+    let isTracked = false;
+    let activeModelEntity = null;
+
+    // ระบบ Touch Controls (หมุน & ซูม)
+    let isDragging = false;
+    let previousTouchPosition = { x: 0, y: 0 };
+    let initialPinchDistance = null;
+    let currentScaleVal = 0.8;
+
+    function loadARItem(itemData) {
+      if (!itemData) return;
+
+      const targetEntity = document.createElement('a-entity');
+      targetEntity.setAttribute('mindar-image-target', `targetIndex: ${itemData.targetIndex}`);
+
+      const modelEntity = document.createElement('a-entity');
+      modelEntity.setAttribute('gltf-model', itemData.model);
+      modelEntity.setAttribute('scale', '0.8 0.8 0.8');
+      modelEntity.setAttribute('position', '0 0 0');
+      modelEntity.setAttribute('rotation', itemData.rotation || '0 0 0');
+      
+      targetEntity.appendChild(modelEntity);
+
+      targetEntity.addEventListener("targetFound", () => {
+        if (!isTracked) {
+          isTracked = true;
+
+          // แสดง UI และปุ่มสแกนใหม่
+          document.getElementById('card-title').innerText = itemData.title || 'ข้อมูลอุปกรณ์';
+          document.getElementById('card-desc').innerText = itemData.desc || '';
+          document.getElementById('info-card').style.display = 'block';
+          document.getElementById('reset-btn').style.display = 'block';
+          document.getElementById('scan-guide').style.display = 'none';
+
+          // ย้ายโมเดลมาล็อกกลางสายตา
+          freezeContainer.appendChild(modelEntity);
+          activeModelEntity = modelEntity;
         }
       });
+
+      container.appendChild(targetEntity);
+    }
+
+    // ฟังก์ชันสำหรับกดปุ่ม "สแกนใหม่"
+    function resetScanner() {
+      if (activeModelEntity) {
+        // ลบโมเดลเดิมออกจากกล้อง
+        activeModelEntity.remove();
+        activeModelEntity = null;
+      }
+
+      // รีเซ็ตสถานะการสแกน
+      isTracked = false;
+      currentScaleVal = 0.8;
+
+      // ปิด UI การ์ดและปุ่มสแกนใหม่ แสดงข้อความแนะนำสแกน
+      document.getElementById('info-card').style.display = 'none';
+      document.getElementById('reset-btn').style.display = 'none';
+      document.getElementById('scan-guide').style.display = 'block';
+
+      // โหลดการตั้งค่า AR ใหม่เพื่อให้สแกนเป้าหมายชิ้นถัดไปได้ทันที
+      container.innerHTML = '';
+      if (typeof gpuData !== 'undefined') {
+        loadARItem(gpuData);
+      }
+    }
+
+    function getPinchDistance(touches) {
+      return Math.hypot(
+        touches[0].clientX - touches[1].clientX,
+        touches[0].clientY - touches[1].clientY
+      );
+    }
+
+    // Touch Event Handling
+    window.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        isDragging = true;
+        previousTouchPosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      } else if (e.touches.length === 2) {
+        isDragging = false;
+        initialPinchDistance = getPinchDistance(e.touches);
+      }
+    });
+
+    window.addEventListener('touchmove', (e) => {
+      if (!activeModelEntity) return;
+
+      if (isDragging && e.touches.length === 1) {
+        const deltaX = e.touches[0].clientX - previousTouchPosition.x;
+        const deltaY = e.touches[0].clientY - previousTouchPosition.y;
+
+        const currentRot = activeModelEntity.getAttribute('rotation');
+        activeModelEntity.setAttribute('rotation', {
+          x: currentRot.x + deltaY * 0.4,
+          y: currentRot.y + deltaX * 0.4,
+          z: currentRot.z
+        });
+
+        previousTouchPosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      } 
+      else if (e.touches.length === 2 && initialPinchDistance) {
+        const currentDistance = getPinchDistance(e.touches);
+        const factor = currentDistance / initialPinchDistance;
+
+        currentScaleVal = Math.min(Math.max(currentScaleVal * factor, 0.2), 3.0);
+        activeModelEntity.setAttribute('scale', `${currentScaleVal} ${currentScaleVal} ${currentScaleVal}`);
+        
+        initialPinchDistance = currentDistance;
+      }
+    });
+
+    window.addEventListener('touchend', (e) => {
+      if (e.touches.length < 2) initialPinchDistance = null;
+      if (e.touches.length === 0) isDragging = false;
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      if (typeof gpuData !== 'undefined') {
+        loadARItem(gpuData);
+      } else {
+        document.getElementById('error-log').style.display = 'block';
+        document.getElementById('error-log').innerText = '⚠️ ไม่พบข้อมูลไฟล์ js/gpu.js';
+      }
     });
   </script>
 </body>
