@@ -9,16 +9,19 @@
   <script src="./js/gpu.js"></script>
 
   <style>
-    body { margin: 0; overflow: hidden; font-family: 'Tahoma', sans-serif; background: transparent; }
-    
+    html, body {
+      margin: 0; padding: 0; width: 100%; height: 100%;
+      overflow: hidden; font-family: 'Tahoma', sans-serif;
+      background-color: #0b0f19;
+    }
+
     #info-card {
       position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
       width: 88%; max-width: 400px; background: rgba(15, 23, 42, 0.92);
       backdrop-filter: blur(12px); border: 1px solid rgba(56, 189, 248, 0.5);
       color: #ffffff; padding: 16px 20px; border-radius: 16px; z-index: 1000;
       box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
-      display: none;
-      animation: fadeInUp 0.4s ease-out;
+      display: none; animation: fadeInUp 0.4s ease-out;
     }
     #info-card h4 { margin: 0 0 6px 0; color: #38bdf8; font-size: 18px; }
     #info-card p { margin: 0; font-size: 13px; color: #e2e8f0; line-height: 1.5; }
@@ -52,18 +55,23 @@
   <div id="info-card">
     <h4 id="card-title">กำลังโหลด...</h4>
     <p id="card-desc">...</p>
-    <div class="hint">💡 ใช้นิ้วลากหมุน | ใช้นิ้วถ่างเพื่อซูมเข้า-ออก</div>
+    <div class="hint">💡 ใช้นิ้วลากเพื่อหมุน | ถ่างนิ้วเพื่อซูมเข้า-ออก</div>
   </div>
 
   <a-scene 
     mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; uiLoading: no; uiError: no;" 
+    embedded
     color-space="sRGB" 
-    renderer="colorManagement: true; precision: medium; alpha: true;" 
+    renderer="colorManagement: true; precision: medium;" 
     vr-mode-ui="enabled: false" 
     device-orientation-permission-ui="enabled: false">
     
     <a-ambient-light color="#ffffff" intensity="1.5"></a-ambient-light>
-    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+    
+    <a-camera id="main-camera" position="0 0 0" look-controls="enabled: false">
+      <!-- จุดยึดโมเดลให้อยู่หน้ากล้องแบบคงที่ (Screen-Locked Container) -->
+      <a-entity id="camera-freeze-container" position="0 0 -2.2" visible="false"></a-entity>
+    </a-camera>
 
     <a-entity id="ar-container"></a-entity>
   </a-scene>
@@ -77,14 +85,16 @@
     };
 
     const container = document.getElementById('ar-container');
+    const freezeContainer = document.getElementById('camera-freeze-container');
+    
     let isTracked = false;
-    let modelEntityRef = null;
+    let activeModelEntity = null;
 
-    // สำหรับควบคุมหมุนและซูม
+    // ระบบควบคุมหมุนและถ่างซูม
     let isDragging = false;
     let previousTouchPosition = { x: 0, y: 0 };
     let initialPinchDistance = null;
-    let initialScale = { x: 0.04, y: 0.04, z: 0.04 }; // ย่อสเกลเริ่มต้นให้พอดีจอ
+    let currentScaleVal = 0.04;
 
     function loadARItem(itemData) {
       if (!itemData) return;
@@ -94,34 +104,38 @@
 
       const modelEntity = document.createElement('a-entity');
       modelEntity.setAttribute('gltf-model', itemData.model);
-      
-      // ตั้งสเกลเริ่มต้นให้ไม่คับจอเกินไป
-      const baseScale = itemData.scale ? itemData.scale : '0.04 0.04 0.04';
-      modelEntity.setAttribute('scale', baseScale);
-      modelEntity.setAttribute('position', itemData.position || '0 0 0');
+      modelEntity.setAttribute('scale', itemData.scale || '0.04 0.04 0.04');
+      modelEntity.setAttribute('position', '0 0 0');
       modelEntity.setAttribute('rotation', itemData.rotation || '0 0 0');
       
-      modelEntityRef = modelEntity;
       targetEntity.appendChild(modelEntity);
 
       targetEntity.addEventListener("targetFound", () => {
         if (!isTracked) {
           isTracked = true;
+
+          // 1. แสดงการ์ดข้อมูล
           document.getElementById('card-title').innerText = itemData.title || 'ข้อมูลอุปกรณ์';
           document.getElementById('card-desc').innerText = itemData.desc || '';
           document.getElementById('info-card').style.display = 'block';
           document.getElementById('scan-guide').style.display = 'none';
 
-          // ล็อกตำแหน่งโดยไม่ปิดกล้องวิดีโอ (ไม่ทำให้เกิดจอดำ)
-          const currentScale = modelEntityRef.getAttribute('scale');
-          initialScale = { ...currentScale };
+          // 2. ย้ายโมเดลมาติดไว้หน้ากล้องโดยตรง ( freeze ตำแหน่งกลางจอ นิ่ง ไม่สั่น ไม่หลุด)
+          freezeContainer.appendChild(modelEntity);
+          freezeContainer.setAttribute('visible', 'true');
+          activeModelEntity = modelEntity;
+
+          // 3. หยุดการทำงานของ Tracker สแกนภาพ เพื่อประหยัดแบตและหยุดความสั่น
+          const sceneEl = document.querySelector('a-scene');
+          if (sceneEl && sceneEl.systems['mindar-image-system']) {
+            sceneEl.systems['mindar-image-system'].stop();
+          }
         }
       });
 
       container.appendChild(targetEntity);
     }
 
-    // คำนวณระยะห่างระหว่าง 2 นิ้วสำหรับซูม
     function getPinchDistance(touches) {
       return Math.hypot(
         touches[0].clientX - touches[1].clientX,
@@ -129,7 +143,7 @@
       );
     }
 
-    // Touch Event Handling (หมุน + ถ่างซูม)
+    // Touch Controls: หมุน (1 นิ้ว) + ซูม (2 นิ้ว)
     window.addEventListener('touchstart', (e) => {
       if (e.touches.length === 1) {
         isDragging = true;
@@ -137,41 +151,35 @@
       } else if (e.touches.length === 2) {
         isDragging = false;
         initialPinchDistance = getPinchDistance(e.touches);
-        if (modelEntityRef) {
-          const currentScale = modelEntityRef.getAttribute('scale');
-          initialScale = { ...currentScale };
-        }
       }
     });
 
     window.addEventListener('touchmove', (e) => {
-      if (!modelEntityRef) return;
+      if (!activeModelEntity) return;
 
-      // 1. หมุนโมเดล (1 นิ้ว)
+      // 1. หมุน 360 องศา
       if (isDragging && e.touches.length === 1) {
         const deltaX = e.touches[0].clientX - previousTouchPosition.x;
         const deltaY = e.touches[0].clientY - previousTouchPosition.y;
 
-        const currentRotation = modelEntityRef.getAttribute('rotation');
-        modelEntityRef.setAttribute('rotation', {
-          x: currentRotation.x + deltaY * 0.4,
-          y: currentRotation.y + deltaX * 0.4,
-          z: currentRotation.z
+        const currentRot = activeModelEntity.getAttribute('rotation');
+        activeModelEntity.setAttribute('rotation', {
+          x: currentRot.x + deltaY * 0.4,
+          y: currentRot.y + deltaX * 0.4,
+          z: currentRot.z
         });
 
         previousTouchPosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
       } 
-      // 2. ถ่างซูมเข้า-ออก (2 นิ้ว)
+      // 2. ถ่างซูมเข้า-ออก
       else if (e.touches.length === 2 && initialPinchDistance) {
         const currentDistance = getPinchDistance(e.touches);
         const factor = currentDistance / initialPinchDistance;
 
-        // คำนวณขนาดใหม่ (จำกัดขนาดไม่ให้เล็กหรือใหญ่เกินไป)
-        let newScaleX = Math.min(Math.max(initialScale.x * factor, 0.01), 0.15);
-        let newScaleY = Math.min(Math.max(initialScale.y * factor, 0.01), 0.15);
-        let newScaleZ = Math.min(Math.max(initialScale.z * factor, 0.01), 0.15);
-
-        modelEntityRef.setAttribute('scale', { x: newScaleX, y: newScaleY, z: newScaleZ });
+        currentScaleVal = Math.min(Math.max(currentScaleVal * factor, 0.015), 0.12);
+        activeModelEntity.setAttribute('scale', `${currentScaleVal} ${currentScaleVal} ${currentScaleVal}`);
+        
+        initialPinchDistance = currentDistance;
       }
     });
 
