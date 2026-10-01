@@ -2,140 +2,59 @@
 <html lang="th">
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>WebAR - 3D Hardware Guide (Testing)</title>
-
+  <title>AR Graphics Card Guide (Improved)</title>
+  <!-- โหลด A-Frame เวอร์ชั่นล่าสุดและ MindAR สำหรับ A-Frame -->
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
-  <script src="./js/gpu.js"></script>
-
-  <style>
-    html, body {
-      margin: 0; padding: 0; width: 100%; height: 100%;
-      overflow: hidden; font-family: 'Tahoma', sans-serif;
-      background: transparent !important; /* บังคับพื้นหลังใส */
-    }
-
-    a-scene {
-      background: transparent !important;
-    }
-
-    #info-card {
-      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-      width: 88%; max-width: 400px; background: rgba(15, 23, 42, 0.92);
-      backdrop-filter: blur(12px); border: 1px solid rgba(56, 189, 248, 0.5);
-      color: #ffffff; padding: 16px 20px; border-radius: 16px; z-index: 1000;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
-      display: none; animation: fadeInUp 0.4s ease-out;
-    }
-    #info-card h4 { margin: 0 0 6px 0; color: #38bdf8; font-size: 18px; }
-    #info-card p { margin: 0; font-size: 13px; color: #e2e8f0; line-height: 1.5; }
-    .hint { font-size: 11px; color: #94a3b8; margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 6px; }
-
-    #scan-guide {
-      position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-      background: rgba(0, 0, 0, 0.7); color: #fff; padding: 8px 16px;
-      border-radius: 20px; font-size: 13px; border: 1px solid rgba(255,255,255,0.2);
-      z-index: 1000; pointer-events: none;
-    }
-
-    #error-log {
-      position: fixed; top: 70px; left: 5%; width: 90%;
-      background: rgba(220, 38, 38, 0.85); color: white;
-      padding: 10px; border-radius: 8px; font-size: 12px;
-      z-index: 9999; display: none; word-break: break-all;
-    }
-
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translate(-50%, 20px); }
-      to { opacity: 1; transform: translate(-50%, 0); }
-    }
-  </style>
+  <!-- โหลดสคริปต์สำหรับจัดการการหมุน/ซูมด้วยนิ้ว -->
+  <script src="https://raw.githack.com/fcor/aframe-gesture-detector/master/dist/aframe-gesture-detector.min.js"></script>
 </head>
-<body>
-
-  <div id="scan-guide">🔍 ส่องกล้องไปที่รูปภาพเป้าหมาย (ลองใช้รูปที่มีรายละเอียดเยอะๆ)</div>
-  <div id="error-log"></div>
-
-  <div id="info-card">
-    <h4 id="card-title">กำลังโหลด...</h4>
-    <p id="card-desc">...</p>
-    <div class="hint">💡 ลองขยับมือถือเข้า-ออก หรือเปลี่ยนมุมส่องกล้อง</div>
-  </div>
-
-  <!-- ปรับสเกลแอป A-Frame ให้ embedded และตั้งค่า alpha: true -->
+<body style="margin: 0; overflow: hidden;">
+  <!-- พื้นหลังดำป้องกันแสงแยงตา -->
   <a-scene 
-    mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; uiLoading: no; uiError: no;" 
-    embedded
+    mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; maxTrack: 2; uiLoading: no; filter: strong;" 
+    gesture-detector
     color-space="sRGB" 
-    renderer="colorManagement: true; precision: medium; alpha: true;" 
+    renderer="colorManagement: true; precision: high; alpha: true;" 
     vr-mode-ui="enabled: false" 
     device-orientation-permission-ui="enabled: false">
     
-    <a-ambient-light color="#ffffff" intensity="2.5"></a-ambient-light>
-    
-    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+    <a-ambient-light color="#bbb" intensity="1.5"></a-ambient-light>
+    <a-directional-light position="1 2 3" intensity="1.2"></a-directional-light>
 
-    <!-- ปรับตำแหน่งโมเดลให้อยู่หน้าเป้าหมาย เพื่อทดสอบสแกน -->
+    <!-- กล้องที่มาพร้อมกับ look-controls สำหรับ gesture และมี embedded เพื่อให้เห็นกล้องด้านหลัง -->
+    <a-camera position="0 0 0" look-controls="enabled: true" embedded></a-camera>
+
+    <!-- คอนเทนเนอร์หลักสำหรับเก็บ Target และ Model -->
     <a-entity id="ar-container">
-      <a-entity id="test-target-entity" visible="false">
-        <a-entity id="test-model-entity" gltf-model="./gpu.glb" scale="0.1 0.1 0.1" position="0 0 0"></a-entity>
+      <a-entity id="card-target" mindar-image-target="targetIndex: 0" visible="false">
+        <!-- โมเดลที่เพิ่มคอมโพเนนต์สำหรับหมุนและซูม -->
+        <a-entity id="gpu-model"
+                  gltf-model="./gpu.glb"
+                  scale="0.2 0.2 0.2"
+                  class="gesture-target"
+                  gesture-handler="minScale: 0.1; maxScale: 1.0; rotationMultiplier: 2;"
+                  visible="true"></a-entity>
       </a-entity>
     </a-entity>
   </a-scene>
 
   <script>
-    window.onerror = function(msg, url, lineNo, columnNo, error) {
-      const log = document.getElementById('error-log');
-      log.style.display = 'block';
-      log.innerHTML = '⚠️ เกิดข้อผิดพลาด: ' + msg;
-      return false;
-    };
+    document.addEventListener("DOMContentLoaded", () => {
+      const sceneEl = document.querySelector('a-scene');
+      const targetEntity = document.getElementById('card-target');
+      let isFound = false;
 
-    const container = document.getElementById('ar-container');
-    const targetEntity = document.getElementById('test-target-entity');
-    const modelEntity = document.getElementById('test-model-entity');
-    
-    function loadARItem(itemData) {
-      if (!itemData) return;
-
-      // ลบ Entity ทดสอบออก
-      container.removeChild(targetEntity);
-
-      // สร้าง Target Entity ใหม่
-      const newTargetEntity = document.createElement('a-entity');
-      newTargetEntity.setAttribute('mindar-image-target', `targetIndex: ${itemData.targetIndex}`);
-
-      // สร้าง Model Entity ใหม่
-      const newModelEntity = document.createElement('a-entity');
-      newModelEntity.setAttribute('gltf-model', itemData.model);
-      newModelEntity.setAttribute('scale', itemData.scale || '0.1 0.1 0.1'); // ลองใช้สเกลเล็กลง
-      newModelEntity.setAttribute('position', '0 0 0');
-      newModelEntity.setAttribute('rotation', itemData.rotation || '0 0 0');
-      
-      newTargetEntity.appendChild(newModelEntity);
-
-      newTargetEntity.addEventListener("targetFound", () => {
-        document.getElementById('card-title').innerText = itemData.title || 'ข้อมูลอุปกรณ์';
-        document.getElementById('card-desc').innerText = itemData.desc || '';
-        document.getElementById('info-card').style.display = 'block';
-        document.getElementById('scan-guide').style.display = 'none';
+      // เมื่อสแกนเจอ: หยุดระบบติดตามภาพ และล็อกโมเดลไว้ให้ลอยค้างหน้าจอ
+      targetEntity.addEventListener("targetFound", (event) => {
+        if (!isFound) {
+          isFound = true;
+          // แสดงโมเดลและหยุดติดตามเป้าหมายทันที
+          sceneEl.setAttribute('mindar-image', 'autoStart', 'false');
+          targetEntity.setAttribute('visible', 'true');
+          console.log("เป้าหมายถูกล็อก! โมเดลจะไม่หายแม้คุณจะแพนกล้องหนี");
+        }
       });
-
-      newTargetEntity.addEventListener("targetLost", () => {
-        document.getElementById('info-card').style.display = 'none';
-        document.getElementById('scan-guide').style.display = 'block';
-      });
-
-      container.appendChild(newTargetEntity);
-    }
-
-    window.addEventListener('DOMContentLoaded', () => {
-      if (typeof gpuData !== 'undefined') {
-        loadARItem(gpuData);
-      } else {
-        document.getElementById('error-log').style.display = 'block';
-        document.getElementById('error-log').innerText = '⚠️ ไม่พบข้อมูลไฟล์ js/gpu.js';
-      }
     });
   </script>
 </body>
