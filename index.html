@@ -4,14 +4,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>WebAR - 3D Hardware Guide</title>
 
-  <!-- ใช้เวอร์ชันเสถียรลดปัญหาจอขาว -->
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
-
   <script src="./js/gpu.js"></script>
 
   <style>
-    body { margin: 0; overflow: hidden; font-family: 'Tahoma', sans-serif; background-color: #000; }
+    body { margin: 0; overflow: hidden; font-family: 'Tahoma', sans-serif; background: transparent; }
     
     #info-card {
       position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
@@ -33,7 +31,6 @@
       z-index: 1000; pointer-events: none;
     }
 
-    /* กล่องแสดงการแจ้งเตือนหากมี Error เกิดขึ้น */
     #error-log {
       position: fixed; top: 70px; left: 5%; width: 90%;
       background: rgba(220, 38, 38, 0.85); color: white;
@@ -55,13 +52,13 @@
   <div id="info-card">
     <h4 id="card-title">กำลังโหลด...</h4>
     <p id="card-desc">...</p>
-    <div class="hint">💡 ใช้นิ้วลากหมุนดูโมเดลได้ 360 องศา</div>
+    <div class="hint">💡 ใช้นิ้วลากหมุน | ใช้นิ้วถ่างเพื่อซูมเข้า-ออก</div>
   </div>
 
   <a-scene 
     mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; uiLoading: no; uiError: no;" 
     color-space="sRGB" 
-    renderer="colorManagement: true; precision: medium;" 
+    renderer="colorManagement: true; precision: medium; alpha: true;" 
     vr-mode-ui="enabled: false" 
     device-orientation-permission-ui="enabled: false">
     
@@ -72,19 +69,22 @@
   </a-scene>
 
   <script>
-    // แสดงข้อผิดพลาดบนจอทันทีถ้าโค้ดมีปัญหา
     window.onerror = function(msg, url, lineNo, columnNo, error) {
       const log = document.getElementById('error-log');
       log.style.display = 'block';
-      log.innerHTML = '⚠️ เกิดข้อผิดพลาด: ' + msg + ' (บรรทัดที่ ' + lineNo + ')';
+      log.innerHTML = '⚠️ เกิดข้อผิดพลาด: ' + msg;
       return false;
     };
 
     const container = document.getElementById('ar-container');
     let isTracked = false;
+    let modelEntityRef = null;
+
+    // สำหรับควบคุมหมุนและซูม
     let isDragging = false;
     let previousTouchPosition = { x: 0, y: 0 };
-    let modelEntityRef = null;
+    let initialPinchDistance = null;
+    let initialScale = { x: 0.04, y: 0.04, z: 0.04 }; // ย่อสเกลเริ่มต้นให้พอดีจอ
 
     function loadARItem(itemData) {
       if (!itemData) return;
@@ -94,7 +94,10 @@
 
       const modelEntity = document.createElement('a-entity');
       modelEntity.setAttribute('gltf-model', itemData.model);
-      modelEntity.setAttribute('scale', itemData.scale || '0.08 0.08 0.08');
+      
+      // ตั้งสเกลเริ่มต้นให้ไม่คับจอเกินไป
+      const baseScale = itemData.scale ? itemData.scale : '0.04 0.04 0.04';
+      modelEntity.setAttribute('scale', baseScale);
       modelEntity.setAttribute('position', itemData.position || '0 0 0');
       modelEntity.setAttribute('rotation', itemData.rotation || '0 0 0');
       
@@ -109,40 +112,73 @@
           document.getElementById('info-card').style.display = 'block';
           document.getElementById('scan-guide').style.display = 'none';
 
-          const sceneEl = document.querySelector('a-scene');
-          if (sceneEl && sceneEl.systems['mindar-image-system']) {
-            sceneEl.systems['mindar-image-system'].stop();
-          }
+          // ล็อกตำแหน่งโดยไม่ปิดกล้องวิดีโอ (ไม่ทำให้เกิดจอดำ)
+          const currentScale = modelEntityRef.getAttribute('scale');
+          initialScale = { ...currentScale };
         }
       });
 
       container.appendChild(targetEntity);
     }
 
+    // คำนวณระยะห่างระหว่าง 2 นิ้วสำหรับซูม
+    function getPinchDistance(touches) {
+      return Math.hypot(
+        touches[0].clientX - touches[1].clientX,
+        touches[0].clientY - touches[1].clientY
+      );
+    }
+
+    // Touch Event Handling (หมุน + ถ่างซูม)
     window.addEventListener('touchstart', (e) => {
       if (e.touches.length === 1) {
         isDragging = true;
         previousTouchPosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      } else if (e.touches.length === 2) {
+        isDragging = false;
+        initialPinchDistance = getPinchDistance(e.touches);
+        if (modelEntityRef) {
+          const currentScale = modelEntityRef.getAttribute('scale');
+          initialScale = { ...currentScale };
+        }
       }
     });
 
     window.addEventListener('touchmove', (e) => {
-      if (!isDragging || !modelEntityRef || e.touches.length !== 1) return;
+      if (!modelEntityRef) return;
 
-      const deltaX = e.touches[0].clientX - previousTouchPosition.x;
-      const deltaY = e.touches[0].clientY - previousTouchPosition.y;
+      // 1. หมุนโมเดล (1 นิ้ว)
+      if (isDragging && e.touches.length === 1) {
+        const deltaX = e.touches[0].clientX - previousTouchPosition.x;
+        const deltaY = e.touches[0].clientY - previousTouchPosition.y;
 
-      const currentRotation = modelEntityRef.getAttribute('rotation');
-      modelEntityRef.setAttribute('rotation', {
-        x: currentRotation.x + deltaY * 0.4,
-        y: currentRotation.y + deltaX * 0.4,
-        z: currentRotation.z
-      });
+        const currentRotation = modelEntityRef.getAttribute('rotation');
+        modelEntityRef.setAttribute('rotation', {
+          x: currentRotation.x + deltaY * 0.4,
+          y: currentRotation.y + deltaX * 0.4,
+          z: currentRotation.z
+        });
 
-      previousTouchPosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        previousTouchPosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      } 
+      // 2. ถ่างซูมเข้า-ออก (2 นิ้ว)
+      else if (e.touches.length === 2 && initialPinchDistance) {
+        const currentDistance = getPinchDistance(e.touches);
+        const factor = currentDistance / initialPinchDistance;
+
+        // คำนวณขนาดใหม่ (จำกัดขนาดไม่ให้เล็กหรือใหญ่เกินไป)
+        let newScaleX = Math.min(Math.max(initialScale.x * factor, 0.01), 0.15);
+        let newScaleY = Math.min(Math.max(initialScale.y * factor, 0.01), 0.15);
+        let newScaleZ = Math.min(Math.max(initialScale.z * factor, 0.01), 0.15);
+
+        modelEntityRef.setAttribute('scale', { x: newScaleX, y: newScaleY, z: newScaleZ });
+      }
     });
 
-    window.addEventListener('touchend', () => { isDragging = false; });
+    window.addEventListener('touchend', (e) => {
+      if (e.touches.length < 2) initialPinchDistance = null;
+      if (e.touches.length === 0) isDragging = false;
+    });
 
     window.addEventListener('DOMContentLoaded', () => {
       if (typeof gpuData !== 'undefined') {
