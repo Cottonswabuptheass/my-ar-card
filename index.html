@@ -12,7 +12,11 @@
     html, body {
       margin: 0; padding: 0; width: 100%; height: 100%;
       overflow: hidden; font-family: 'Tahoma', sans-serif;
-      background-color: #0b0f19;
+      background: transparent !important;
+    }
+
+    a-scene {
+      background: transparent !important;
     }
 
     #info-card {
@@ -62,15 +66,16 @@
     mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; uiLoading: no; uiError: no;" 
     embedded
     color-space="sRGB" 
-    renderer="colorManagement: true; precision: medium;" 
+    renderer="colorManagement: true; precision: medium; alpha: true;" 
     vr-mode-ui="enabled: false" 
     device-orientation-permission-ui="enabled: false">
     
-    <a-ambient-light color="#ffffff" intensity="1.5"></a-ambient-light>
+    <a-ambient-light color="#ffffff" intensity="2.0"></a-ambient-light>
+    <a-directional-light position="1 2 3" intensity="1.5"></a-directional-light>
     
     <a-camera id="main-camera" position="0 0 0" look-controls="enabled: false">
-      <!-- จุดยึดโมเดลให้อยู่หน้ากล้องแบบคงที่ (Screen-Locked Container) -->
-      <a-entity id="camera-freeze-container" position="0 0 -2.2" visible="false"></a-entity>
+      <!-- จุดล็อกโมเดลให้อยู่หน้ากล้อง ระยะห่างกำลังพอดี (-2.5) -->
+      <a-entity id="camera-freeze-container" position="0 0 -2.5"></a-entity>
     </a-camera>
 
     <a-entity id="ar-container"></a-entity>
@@ -90,11 +95,11 @@
     let isTracked = false;
     let activeModelEntity = null;
 
-    // ระบบควบคุมหมุนและถ่างซูม
+    // ระบบควบคุมหมุนและซูม
     let isDragging = false;
     let previousTouchPosition = { x: 0, y: 0 };
     let initialPinchDistance = null;
-    let currentScaleVal = 0.04;
+    let currentScaleVal = 0.8; // กำหนดค่าเริ่มต้นสเกลขนาดโมเดล
 
     function loadARItem(itemData) {
       if (!itemData) return;
@@ -104,7 +109,9 @@
 
       const modelEntity = document.createElement('a-entity');
       modelEntity.setAttribute('gltf-model', itemData.model);
-      modelEntity.setAttribute('scale', itemData.scale || '0.04 0.04 0.04');
+      
+      // ตั้งค่าขนาดและมุมเริ่มต้นให้มองเห็นชัดเจน
+      modelEntity.setAttribute('scale', '0.8 0.8 0.8');
       modelEntity.setAttribute('position', '0 0 0');
       modelEntity.setAttribute('rotation', itemData.rotation || '0 0 0');
       
@@ -120,16 +127,9 @@
           document.getElementById('info-card').style.display = 'block';
           document.getElementById('scan-guide').style.display = 'none';
 
-          // 2. ย้ายโมเดลมาติดไว้หน้ากล้องโดยตรง ( freeze ตำแหน่งกลางจอ นิ่ง ไม่สั่น ไม่หลุด)
+          // 2. ย้ายโมเดลมาล็อกไว้หน้ากล้อง
           freezeContainer.appendChild(modelEntity);
-          freezeContainer.setAttribute('visible', 'true');
           activeModelEntity = modelEntity;
-
-          // 3. หยุดการทำงานของ Tracker สแกนภาพ เพื่อประหยัดแบตและหยุดความสั่น
-          const sceneEl = document.querySelector('a-scene');
-          if (sceneEl && sceneEl.systems['mindar-image-system']) {
-            sceneEl.systems['mindar-image-system'].stop();
-          }
         }
       });
 
@@ -143,7 +143,7 @@
       );
     }
 
-    // Touch Controls: หมุน (1 นิ้ว) + ซูม (2 นิ้ว)
+    // Touch Event Handling
     window.addEventListener('touchstart', (e) => {
       if (e.touches.length === 1) {
         isDragging = true;
@@ -157,7 +157,7 @@
     window.addEventListener('touchmove', (e) => {
       if (!activeModelEntity) return;
 
-      // 1. หมุน 360 องศา
+      // หมุนโมเดล
       if (isDragging && e.touches.length === 1) {
         const deltaX = e.touches[0].clientX - previousTouchPosition.x;
         const deltaY = e.touches[0].clientY - previousTouchPosition.y;
@@ -171,12 +171,12 @@
 
         previousTouchPosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
       } 
-      // 2. ถ่างซูมเข้า-ออก
+      // ถ่างซูม
       else if (e.touches.length === 2 && initialPinchDistance) {
         const currentDistance = getPinchDistance(e.touches);
         const factor = currentDistance / initialPinchDistance;
 
-        currentScaleVal = Math.min(Math.max(currentScaleVal * factor, 0.015), 0.12);
+        currentScaleVal = Math.min(Math.max(currentScaleVal * factor, 0.2), 3.0);
         activeModelEntity.setAttribute('scale', `${currentScaleVal} ${currentScaleVal} ${currentScaleVal}`);
         
         initialPinchDistance = currentDistance;
