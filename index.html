@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>WebAR - 3D Hardware Guide</title>
+  <title>WebAR - 3D Hardware Guide (Testing)</title>
 
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
@@ -12,7 +12,7 @@
     html, body {
       margin: 0; padding: 0; width: 100%; height: 100%;
       overflow: hidden; font-family: 'Tahoma', sans-serif;
-      background: transparent !important;
+      background: transparent !important; /* บังคับพื้นหลังใส */
     }
 
     a-scene {
@@ -53,15 +53,16 @@
 </head>
 <body>
 
-  <div id="scan-guide">🔍 ส่องกล้องไปที่รูปภาพเป้าหมาย</div>
+  <div id="scan-guide">🔍 ส่องกล้องไปที่รูปภาพเป้าหมาย (ลองใช้รูปที่มีรายละเอียดเยอะๆ)</div>
   <div id="error-log"></div>
 
   <div id="info-card">
     <h4 id="card-title">กำลังโหลด...</h4>
     <p id="card-desc">...</p>
-    <div class="hint">💡 ใช้นิ้วลากเพื่อหมุน | ถ่างนิ้วเพื่อซูมเข้า-ออก</div>
+    <div class="hint">💡 ลองขยับมือถือเข้า-ออก หรือเปลี่ยนมุมส่องกล้อง</div>
   </div>
 
+  <!-- ปรับสเกลแอป A-Frame ให้ embedded และตั้งค่า alpha: true -->
   <a-scene 
     mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; uiLoading: no; uiError: no;" 
     embedded
@@ -70,15 +71,16 @@
     vr-mode-ui="enabled: false" 
     device-orientation-permission-ui="enabled: false">
     
-    <a-ambient-light color="#ffffff" intensity="2.0"></a-ambient-light>
-    <a-directional-light position="1 2 3" intensity="1.5"></a-directional-light>
+    <a-ambient-light color="#ffffff" intensity="2.5"></a-ambient-light>
     
-    <a-camera id="main-camera" position="0 0 0" look-controls="enabled: false">
-      <!-- จุดล็อกโมเดลให้อยู่หน้ากล้อง ระยะห่างกำลังพอดี (-2.5) -->
-      <a-entity id="camera-freeze-container" position="0 0 -2.5"></a-entity>
-    </a-camera>
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-    <a-entity id="ar-container"></a-entity>
+    <!-- ปรับตำแหน่งโมเดลให้อยู่หน้าเป้าหมาย เพื่อทดสอบสแกน -->
+    <a-entity id="ar-container">
+      <a-entity id="test-target-entity" visible="false">
+        <a-entity id="test-model-entity" gltf-model="./gpu.glb" scale="0.1 0.1 0.1" position="0 0 0"></a-entity>
+      </a-entity>
+    </a-entity>
   </a-scene>
 
   <script>
@@ -90,103 +92,42 @@
     };
 
     const container = document.getElementById('ar-container');
-    const freezeContainer = document.getElementById('camera-freeze-container');
+    const targetEntity = document.getElementById('test-target-entity');
+    const modelEntity = document.getElementById('test-model-entity');
     
-    let isTracked = false;
-    let activeModelEntity = null;
-
-    // ระบบควบคุมหมุนและซูม
-    let isDragging = false;
-    let previousTouchPosition = { x: 0, y: 0 };
-    let initialPinchDistance = null;
-    let currentScaleVal = 0.8; // กำหนดค่าเริ่มต้นสเกลขนาดโมเดล
-
     function loadARItem(itemData) {
       if (!itemData) return;
 
-      const targetEntity = document.createElement('a-entity');
-      targetEntity.setAttribute('mindar-image-target', `targetIndex: ${itemData.targetIndex}`);
+      // ลบ Entity ทดสอบออก
+      container.removeChild(targetEntity);
 
-      const modelEntity = document.createElement('a-entity');
-      modelEntity.setAttribute('gltf-model', itemData.model);
+      // สร้าง Target Entity ใหม่
+      const newTargetEntity = document.createElement('a-entity');
+      newTargetEntity.setAttribute('mindar-image-target', `targetIndex: ${itemData.targetIndex}`);
+
+      // สร้าง Model Entity ใหม่
+      const newModelEntity = document.createElement('a-entity');
+      newModelEntity.setAttribute('gltf-model', itemData.model);
+      newModelEntity.setAttribute('scale', itemData.scale || '0.1 0.1 0.1'); // ลองใช้สเกลเล็กลง
+      newModelEntity.setAttribute('position', '0 0 0');
+      newModelEntity.setAttribute('rotation', itemData.rotation || '0 0 0');
       
-      // ตั้งค่าขนาดและมุมเริ่มต้นให้มองเห็นชัดเจน
-      modelEntity.setAttribute('scale', '0.8 0.8 0.8');
-      modelEntity.setAttribute('position', '0 0 0');
-      modelEntity.setAttribute('rotation', itemData.rotation || '0 0 0');
-      
-      targetEntity.appendChild(modelEntity);
+      newTargetEntity.appendChild(newModelEntity);
 
-      targetEntity.addEventListener("targetFound", () => {
-        if (!isTracked) {
-          isTracked = true;
-
-          // 1. แสดงการ์ดข้อมูล
-          document.getElementById('card-title').innerText = itemData.title || 'ข้อมูลอุปกรณ์';
-          document.getElementById('card-desc').innerText = itemData.desc || '';
-          document.getElementById('info-card').style.display = 'block';
-          document.getElementById('scan-guide').style.display = 'none';
-
-          // 2. ย้ายโมเดลมาล็อกไว้หน้ากล้อง
-          freezeContainer.appendChild(modelEntity);
-          activeModelEntity = modelEntity;
-        }
+      newTargetEntity.addEventListener("targetFound", () => {
+        document.getElementById('card-title').innerText = itemData.title || 'ข้อมูลอุปกรณ์';
+        document.getElementById('card-desc').innerText = itemData.desc || '';
+        document.getElementById('info-card').style.display = 'block';
+        document.getElementById('scan-guide').style.display = 'none';
       });
 
-      container.appendChild(targetEntity);
+      newTargetEntity.addEventListener("targetLost", () => {
+        document.getElementById('info-card').style.display = 'none';
+        document.getElementById('scan-guide').style.display = 'block';
+      });
+
+      container.appendChild(newTargetEntity);
     }
-
-    function getPinchDistance(touches) {
-      return Math.hypot(
-        touches[0].clientX - touches[1].clientX,
-        touches[0].clientY - touches[1].clientY
-      );
-    }
-
-    // Touch Event Handling
-    window.addEventListener('touchstart', (e) => {
-      if (e.touches.length === 1) {
-        isDragging = true;
-        previousTouchPosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-      } else if (e.touches.length === 2) {
-        isDragging = false;
-        initialPinchDistance = getPinchDistance(e.touches);
-      }
-    });
-
-    window.addEventListener('touchmove', (e) => {
-      if (!activeModelEntity) return;
-
-      // หมุนโมเดล
-      if (isDragging && e.touches.length === 1) {
-        const deltaX = e.touches[0].clientX - previousTouchPosition.x;
-        const deltaY = e.touches[0].clientY - previousTouchPosition.y;
-
-        const currentRot = activeModelEntity.getAttribute('rotation');
-        activeModelEntity.setAttribute('rotation', {
-          x: currentRot.x + deltaY * 0.4,
-          y: currentRot.y + deltaX * 0.4,
-          z: currentRot.z
-        });
-
-        previousTouchPosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-      } 
-      // ถ่างซูม
-      else if (e.touches.length === 2 && initialPinchDistance) {
-        const currentDistance = getPinchDistance(e.touches);
-        const factor = currentDistance / initialPinchDistance;
-
-        currentScaleVal = Math.min(Math.max(currentScaleVal * factor, 0.2), 3.0);
-        activeModelEntity.setAttribute('scale', `${currentScaleVal} ${currentScaleVal} ${currentScaleVal}`);
-        
-        initialPinchDistance = currentDistance;
-      }
-    });
-
-    window.addEventListener('touchend', (e) => {
-      if (e.touches.length < 2) initialPinchDistance = null;
-      if (e.touches.length === 0) isDragging = false;
-    });
 
     window.addEventListener('DOMContentLoaded', () => {
       if (typeof gpuData !== 'undefined') {
