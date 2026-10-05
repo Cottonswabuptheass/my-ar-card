@@ -80,11 +80,12 @@
     vr-mode-ui="enabled: false" 
     device-orientation-permission-ui="enabled: false">
     
-    <a-ambient-light color="#ffffff" intensity="2.5"></a-ambient-light>
-    <a-directional-light position="1 2 3" intensity="1.5"></a-directional-light>
+    <a-ambient-light color="#ffffff" intensity="3.0"></a-ambient-light>
+    <a-directional-light position="1 2 3" intensity="2.0"></a-directional-light>
     
     <a-camera id="main-camera" position="0 0 0" look-controls="enabled: false">
-      <a-entity id="camera-freeze-container" position="0 0 -2.5"></a-entity>
+      <!-- คอนเทนเนอร์ตั้งห่างจากกล้องระยะกำลังดี (-1.5) -->
+      <a-entity id="camera-freeze-container" position="0 0 -1.5"></a-entity>
     </a-camera>
 
     <a-entity id="ar-container"></a-entity>
@@ -94,7 +95,7 @@
     function showError(msg) {
       const log = document.getElementById('error-log');
       log.style.display = 'block';
-      log.innerHTML = '⚠️ ' + msg;
+      log.innerHTML = '⚠️️ ' + msg;
     }
 
     window.onerror = function(msg) {
@@ -111,7 +112,7 @@
     let isDragging = false;
     let previousTouchPosition = { x: 0, y: 0 };
     let initialPinchDistance = null;
-    let currentScaleVal = 0.8;
+    let currentScaleVal = 0.3; // ปรับขนาดเริ่มต้นลงมาที่ 0.3
 
     function loadARItem(itemData) {
       if (!itemData) return;
@@ -121,13 +122,13 @@
 
       const modelEntity = document.createElement('a-entity');
       modelEntity.setAttribute('gltf-model', itemData.model);
-      modelEntity.setAttribute('scale', '0.8 0.8 0.8');
+      modelEntity.setAttribute('scale', '0.3 0.3 0.3');
       modelEntity.setAttribute('position', '0 0 0');
       modelEntity.setAttribute('rotation', itemData.rotation || '0 0 0');
       
-      // ดักจับเมื่อโมเดลโหลดล้มเหลว
+      // ดักจับเมื่อไฟล์โมเดลโหลดล้มเหลว
       modelEntity.addEventListener('model-error', (e) => {
-        showError('ไม่สามารถโหลดไฟล์โมเดล 3D ได้: ' + itemData.model);
+        showError('โหลดโมเดล 3D ไม่สำเร็จ! เช็กว่าไฟล์ ' + itemData.model + ' อยู่บน GitHub หรือยัง');
       });
 
       targetEntity.appendChild(modelEntity);
@@ -142,6 +143,7 @@
           document.getElementById('reset-btn').style.display = 'block';
           document.getElementById('scan-guide').style.display = 'none';
 
+          // ย้ายโมเดลเข้าล็อกหน้ากล้อง
           freezeContainer.appendChild(modelEntity);
           activeModelEntity = modelEntity;
         }
@@ -156,7 +158,7 @@
         activeModelEntity = null;
       }
       isTracked = false;
-      currentScaleVal = 0.8;
+      currentScaleVal = 0.3;
 
       document.getElementById('info-card').style.display = 'none';
       document.getElementById('reset-btn').style.display = 'none';
@@ -206,7 +208,7 @@
         const currentDistance = getPinchDistance(e.touches);
         const factor = currentDistance / initialPinchDistance;
 
-        currentScaleVal = Math.min(Math.max(currentScaleVal * factor, 0.2), 3.0);
+        currentScaleVal = Math.min(Math.max(currentScaleVal * factor, 0.05), 2.0);
         activeModelEntity.setAttribute('scale', `${currentScaleVal} ${currentScaleVal} ${currentScaleVal}`);
         
         initialPinchDistance = currentDistance;
