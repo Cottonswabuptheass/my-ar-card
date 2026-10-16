@@ -44,6 +44,7 @@
     }
     .neon-pulse { animation: pulse-neon 2s cubic-bezier(0.4,0,0.6,1) infinite; }
     
+    /* บังคับหน้าต่าง AR เต็มจอ 100% แบบไร้ขอบ */
     #ar-view {
       display: none;
       position: fixed;
@@ -53,6 +54,36 @@
       z-index: 99999;
       background: #0f131c;
       overflow: hidden;
+    }
+
+    /* บังคับ A-Frame Scene และ Canvas ให้เต็มจอแท้จริง */
+    #ar-view a-scene {
+      width: 100vw !important;
+      height: 100vh !important;
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+    }
+
+    #ar-view canvas.a-canvas {
+      width: 100vw !important;
+      height: 100vh !important;
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+    }
+    
+    /* บังคับวิดีโอสตรีมกล้องให้คลุมเต็มจอแบบ Cover ป้องกันขอบดำ */
+    #ar-view video {
+      object-fit: cover !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      margin: auto !important;
     }
   </style>
 </head>
@@ -179,7 +210,7 @@
     </button>
   </div>
 
-  <!-- Popup Modal ทำแบบทดสอบ ( View-Only Mode เมื่อทำแล้ว ) -->
+  <!-- Popup Modal ทำแบบทดสอบ (View-Only Mode) -->
   <div id="quiz-modal" class="fixed inset-0 z-[999999] hidden flex items-center justify-center bg-black/80 backdrop-blur-md px-4">
     <div class="w-full max-w-sm rounded-3xl bg-surface-container p-6 border border-primary/40 shadow-2xl relative">
       <button onclick="closeQuizModal()" class="absolute top-4 right-4 text-on-surface-variant hover:text-primary">
@@ -211,38 +242,10 @@
     </div>
   </div>
 
-  <!-- AR Camera Fullscreen View Wrapper -->
+  <!-- AR Camera Fullscreen View -->
   <div id="ar-view">
-    <div class="absolute top-4 left-4 right-4 z-[100000] flex justify-between items-center pointer-events-auto">
-      <button onclick="stopARScan()" class="px-3 py-2 rounded-full bg-surface-container-high/90 text-on-surface font-bold text-xs flex items-center gap-1 shadow-lg border border-primary/30 backdrop-blur cursor-pointer">
-        <span class="material-symbols-outlined text-sm">arrow_back</span> ย้อนกลับ
-      </button>
-
-      <button onclick="openQuizModal()" class="px-3 py-2 rounded-full bg-primary text-on-primary font-bold text-xs flex items-center gap-1 shadow-lg cursor-pointer neon-pulse">
-        <span class="material-symbols-outlined text-sm">quiz</span> ทำแบบทดสอบ
-      </button>
-
-      <button onclick="resetARModel()" class="px-3 py-2 rounded-full bg-surface-container-high/90 text-on-surface font-bold text-xs flex items-center gap-1 shadow-lg border border-primary/30 backdrop-blur cursor-pointer">
-        <span class="material-symbols-outlined text-sm">refresh</span> รีเซ็ต
-      </button>
-    </div>
-
-    <div id="ar-info-card" class="absolute bottom-6 left-4 right-4 z-[100000] hidden p-4 rounded-2xl bg-surface-container/95 border border-primary/40 backdrop-blur-xl shadow-2xl pointer-events-auto">
-      <div class="flex items-center justify-between mb-1">
-        <h4 class="text-primary font-bold text-base">การ์ดจอ (GPU - RTX 4090)</h4>
-        <span class="px-2 py-0.5 rounded-full bg-primary/20 text-primary text-[10px] font-bold">AR Active</span>
-      </div>
-      <p class="text-xs text-on-surface-variant mb-2 leading-relaxed">
-        ทำหน้าที่ประมวลผลภาพกราฟิก 3D และเรนเดอร์ภาพออกจอคอมพิวเตอร์ มีพัดลมระบายความร้อนประสิทธิภาพสูง
-      </p>
-      <div class="border-t border-surface-container-high pt-2 flex items-center justify-between text-[10px] text-primary">
-        <span>🎉 สแกนเจอโมเดล 3D สำเร็จ!</span>
-        <span>💡 ใช้นิ้วลากเพื่อหมุน | ถ่างเพื่อซูม</span>
-      </div>
-    </div>
-
-    <!-- Dynamic AR Scene Container (สร้างและทำลายทิ้งเพื่อแก้กล้องค้าง 100%) -->
-    <div id="scene-wrapper" class="w-full h-full"></div>
+    <!-- Dynamic AR Scene Container -->
+    <div id="scene-wrapper" class="w-full h-full relative"></div>
   </div>
 
   <!-- Audio Background Player -->
@@ -303,7 +306,7 @@
     }
   </script>
 
-  <!-- Game Logic & Strict Anti-Farm Quiz System -->
+  <!-- Game Logic & View-Only Quiz System -->
   <script>
     let currentXP = parseInt(localStorage.getItem('ar_xp')) || 0;
     let unlockedCount = parseInt(localStorage.getItem('ar_unlocked')) || 0;
@@ -331,7 +334,7 @@
     }
 
     function answerQuiz(isCorrect, optIndex) {
-      if (hasUnlockedGPU) return; // ล็อกไม่ให้กดซ้ำเด็ดขาด
+      if (hasUnlockedGPU) return;
 
       const btnElement = document.getElementById(`opt-${optIndex}`);
 
@@ -415,7 +418,7 @@
     }
   </script>
 
-  <!-- AR & Camera Dynamic Cleanup Logic (แก้กล้องค้าง 100% ด้วยการทำลาย Scene ทิ้ง) -->
+  <!-- AR & Camera Dynamic Cleanup Logic -->
   <script>
     const arView = document.getElementById('ar-view');
     const sceneWrapper = document.getElementById('scene-wrapper');
@@ -434,8 +437,21 @@
     function startARScan() {
       arView.style.display = 'block';
       
-      // สร้าง Scene สดๆ ใหม่ทุกครั้งที่เปิด เพื่อป้องกันสตรีมกล้องค้าง
       sceneWrapper.innerHTML = `
+        <div class="absolute top-4 left-4 right-4 z-[100000] flex justify-between items-center pointer-events-auto">
+          <button onclick="stopARScan()" class="px-3 py-2 rounded-full bg-surface-container-high/90 text-on-surface font-bold text-xs flex items-center gap-1 shadow-lg border border-primary/30 backdrop-blur cursor-pointer">
+            <span class="material-symbols-outlined text-sm">arrow_back</span> ย้อนกลับ
+          </button>
+
+          <button onclick="openQuizModal()" class="px-3 py-2 rounded-full bg-primary text-on-primary font-bold text-xs flex items-center gap-1 shadow-lg cursor-pointer neon-pulse">
+            <span class="material-symbols-outlined text-sm">quiz</span> ทำแบบทดสอบ
+          </button>
+
+          <button onclick="resetARModel()" class="px-3 py-2 rounded-full bg-surface-container-high/90 text-on-surface font-bold text-xs flex items-center gap-1 shadow-lg border border-primary/30 backdrop-blur cursor-pointer">
+            <span class="material-symbols-outlined text-sm">refresh</span> รีเซ็ต
+          </button>
+        </div>
+
         <div id="ar-info-card" class="absolute bottom-6 left-4 right-4 z-[100000] hidden p-4 rounded-2xl bg-surface-container/95 border border-primary/40 backdrop-blur-xl shadow-2xl pointer-events-auto">
           <div class="flex items-center justify-between mb-1">
             <h4 class="text-primary font-bold text-base">การ์ดจอ (GPU - RTX 4090)</h4>
@@ -449,6 +465,7 @@
             <span>💡 ใช้นิ้วลากเพื่อหมุน | ถ่างเพื่อซูม</span>
           </div>
         </div>
+
         <a-scene id="ar-scene-el" mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; uiLoading: no; uiError: no;" embedded color-space="sRGB" renderer="colorManagement: true; precision: medium; alpha: true;" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
           <a-ambient-light color="#ffffff" intensity="2.5"></a-ambient-light>
           <a-directional-light position="1 2 3" intensity="1.5"></a-directional-light>
@@ -473,10 +490,9 @@
     function stopARScan() {
       arView.style.display = 'none';
 
-      // ทำลาย Scene และสตรีมกล้องทั้งหมดทิ้งอย่างเด็ดขาด
+      // ทำลาย Scene และล้างแท็กวิดีโอทั้งหมดทิ้งทันที
       sceneWrapper.innerHTML = '';
 
-      // เคลียร์แท็กวิดีโอของกล้องที่เบราว์เซอร์เปิดค้างไว้
       const videos = document.querySelectorAll('video');
       videos.forEach(video => {
         if (video.srcObject) {
