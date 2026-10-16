@@ -1,143 +1,323 @@
 <!DOCTYPE html>
-<html lang="th">
+<html class="dark" lang="th">
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>AR Hardware Guide</title>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+  <title>AR PC BUILDER</title>
+  
+  <link href="https://fonts.googleapis.com" rel="preconnect"/>
+  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "surface": "#0f131c",
+            "surface-container": "#1c1f29",
+            "surface-container-high": "#262a34",
+            "surface-container-low": "#181b25",
+            "surface-container-lowest": "#0a0e17",
+            "primary": "#4be277",
+            "on-primary": "#003915",
+            "on-surface": "#dfe2ef",
+            "on-surface-variant": "#bccbb9",
+            "tertiary": "#50dfa4"
+          }
+        }
+      }
+    };
+  </script>
 
+  <!-- AR Libraries -->
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
   <script src="./js/gpu.js"></script>
 
   <style>
-    html, body {
-      margin: 0; padding: 0; width: 100%; height: 100%;
-      overflow: hidden; font-family: 'Tahoma', sans-serif;
+    @keyframes pulse-neon {
+      0%, 100% { opacity: 1; box-shadow: 0 0 12px #4be277, 0 0 20px rgba(75,226,119,0.4); }
+      50% { opacity: 0.4; box-shadow: 0 0 4px #4be277; }
+    }
+    .neon-pulse { animation: pulse-neon 2s cubic-bezier(0.4,0,0.6,1) infinite; }
+    
+    /* ซ่อนฉาก A-Frame ไว้ตอนเปิดเว็บ */
+    #ar-view {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 100;
       background: transparent !important;
     }
-
-    a-scene {
-      background: transparent !important;
-    }
-
-    #info-card {
-      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-      width: 88%; max-width: 400px; background: rgba(15, 23, 42, 0.92);
-      backdrop-filter: blur(12px); border: 1px solid rgba(56, 189, 248, 0.5);
-      color: #ffffff; padding: 16px 20px; border-radius: 16px; z-index: 1000;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
-      display: none; animation: fadeInUp 0.4s ease-out;
-    }
-    #info-card h4 { margin: 0 0 6px 0; color: #38bdf8; font-size: 18px; }
-    #info-card p { margin: 0; font-size: 13px; color: #e2e8f0; line-height: 1.5; }
-    .hint { font-size: 11px; color: #94a3b8; margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 6px; }
-
-    #scan-guide {
-      position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-      background: rgba(0, 0, 0, 0.7); color: #fff; padding: 8px 16px;
-      border-radius: 20px; font-size: 13px; border: 1px solid rgba(255,255,255,0.2);
-      z-index: 1000; pointer-events: none;
-    }
-
-    #reset-btn {
-      position: fixed; top: 20px; right: 20px;
-      background: #0284c7; color: #ffffff;
-      border: none; padding: 10px 18px; border-radius: 25px;
-      font-size: 13px; font-weight: bold;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      display: none; z-index: 1001; cursor: pointer;
-    }
-
-    #error-log {
-      position: fixed; top: 70px; left: 5%; width: 90%;
-      background: rgba(220, 38, 38, 0.9); color: white;
-      padding: 10px; border-radius: 8px; font-size: 12px;
-      z-index: 9999; display: none; word-break: break-all;
-    }
-
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translate(-50%, 20px); }
-      to { opacity: 1; transform: translate(-50%, 0); }
-    }
+    a-scene { background: transparent !important; }
   </style>
 </head>
-<body>
 
-  <div id="scan-guide">🔍 ส่องกล้องไปที่รูปภาพเป้าหมาย</div>
-  <button id="reset-btn" onclick="resetScanner()">🔄 สแกนใหม่</button>
-  <div id="error-log"></div>
+<body class="bg-surface font-sans text-on-surface flex flex-col min-h-screen">
 
-  <div id="info-card">
-    <h4 id="card-title">กำลังโหลด...</h4>
-    <p id="card-desc">...</p>
-    <div class="hint">💡 ใช้นิ้วลากเพื่อหมุน | ถ่างนิ้วเพื่อซูมเข้า-ออก</div>
+  <!-- Header -->
+  <header class="fixed top-0 inset-x-0 z-50 bg-surface/80 backdrop-blur-xl h-16 px-4 flex items-center justify-between border-b border-surface-container-high">
+    <div class="flex items-center gap-2">
+      <div class="w-2.5 h-2.5 rounded-full bg-primary neon-pulse"></div>
+      <div class="flex flex-col">
+        <div class="flex items-center gap-1.5">
+          <span class="font-bold text-lg tracking-wider text-on-surface">AR PC BUILDER</span>
+          <span class="text-[10px] text-primary uppercase px-1.5 py-0.5 rounded bg-surface-container-high font-semibold">AR//LAB</span>
+        </div>
+        <span class="text-xs text-on-surface-variant">สื่อการเรียนรู้ประกอบคอมฯ</span>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <button onclick="alert('ระบบเสียงเปิดใช้งาน')" class="w-10 h-10 flex items-center justify-center rounded-lg text-on-surface-variant hover:text-primary active:scale-95 transition-all">
+        <span class="material-symbols-outlined">volume_up</span>
+      </button>
+      <div class="h-8 px-3 flex items-center gap-1 rounded-full bg-surface-container-high text-xs">
+        <span class="text-primary font-bold">TH</span><span class="text-on-surface-variant">/EN</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main id="ui-view" class="flex-1 flex flex-col pt-20 pb-28 px-4 max-w-md mx-auto w-full">
+    
+    <!-- Progress Section -->
+    <section class="mb-6">
+      <div class="relative overflow-hidden rounded-2xl bg-surface-container-high/90 p-4 border border-surface-container-high">
+        <div class="flex items-start justify-between mb-2">
+          <div>
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary/15 text-primary text-xs font-semibold uppercase">
+              <span class="material-symbols-outlined text-[14px]">flag</span> เควสต์สะสมชิ้นส่วน
+            </span>
+            <h2 id="progress-text" class="text-xl font-bold mt-1 text-on-surface">ปลดล็อกแล้ว 1 / 10 ชิ้น</h2>
+          </div>
+          <div class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-container-highest">
+            <span class="material-symbols-outlined text-primary text-sm">bolt</span>
+            <span id="xp-text" class="text-xs text-primary font-bold">100 XP</span>
+          </div>
+        </div>
+        <p class="text-xs text-on-surface-variant mb-3">สแกนหาชิ้นส่วนอีก 9 ชิ้นเพื่อปลดล็อกโหมดประกอบเครื่องจริง</p>
+        <div class="grid grid-cols-10 gap-1 h-2 w-full mb-2">
+          <div class="rounded bg-primary shadow-[0_0_8px_#4be277]"></div>
+          <div class="rounded bg-surface-container-highest"></div>
+          <div class="rounded bg-surface-container-highest"></div>
+          <div class="rounded bg-surface-container-highest"></div>
+          <div class="rounded bg-surface-container-highest"></div>
+          <div class="rounded bg-surface-container-highest"></div>
+          <div class="rounded bg-surface-container-highest"></div>
+          <div class="rounded bg-surface-container-highest"></div>
+          <div class="rounded bg-surface-container-highest"></div>
+          <div class="rounded bg-surface-container-highest"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Quiz Section -->
+    <section class="mb-6">
+      <div class="rounded-2xl bg-surface-container/95 p-4 border border-primary/20">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-tertiary">lightbulb</span>
+            <span class="font-bold text-sm">มินิควิซ: การ์ดจอ (GPU)</span>
+          </div>
+          <span class="px-2 py-0.5 rounded-full bg-tertiary/20 text-tertiary text-xs font-bold">+50 XP</span>
+        </div>
+        <p class="text-sm mb-3">หน้าที่หลักของ GPU ในคอมพิวเตอร์คือข้อใด?</p>
+        <div class="flex flex-col gap-2" id="quiz-options">
+          <button onclick="answerQuiz(true)" class="w-full text-left p-2.5 rounded-xl bg-surface-container-high flex items-center justify-between border border-primary/40">
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded bg-primary text-on-primary text-xs font-bold flex items-center justify-center">A</span>
+              <span class="text-sm text-primary font-medium">ประมวลผลกราฟิกและภาพ 3D</span>
+            </div>
+            <span class="material-symbols-outlined text-primary text-sm">check_circle</span>
+          </button>
+          <button onclick="answerQuiz(false)" class="w-full text-left p-2.5 rounded-xl bg-surface-container-low flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded bg-surface-container-highest text-xs font-bold flex items-center justify-center text-on-surface-variant">B</span>
+              <span class="text-sm text-on-surface-variant">จัดเก็บไฟล์ระบบถาวร</span>
+            </div>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Inventory Section -->
+    <div class="flex items-center justify-between mb-3">
+      <div class="flex items-center gap-1.5">
+        <span class="material-symbols-outlined text-primary">grid_view</span>
+        <h3 class="font-bold text-base">คลังชิ้นส่วนฮาร์ดแวร์</h3>
+      </div>
+      <span class="text-xs text-on-surface-variant">10 รายการ</span>
+    </div>
+
+    <!-- Grid 10 Items -->
+    <div class="grid grid-cols-2 gap-3 mb-6">
+      
+      <!-- 01: GPU (UNLOCKED) -->
+      <div class="relative flex flex-col justify-between rounded-xl bg-surface-container-high p-3 border border-primary/50 shadow-[0_0_15px_rgba(75,226,119,0.15)]">
+        <div class="flex items-center justify-between mb-2">
+          <span class="px-2 py-0.5 rounded-full bg-primary/20 text-primary text-[10px] font-bold">ปลดล็อกแล้ว</span>
+          <span class="material-symbols-outlined text-primary text-sm">verified</span>
+        </div>
+        <div class="w-full h-20 rounded-lg bg-surface-container-lowest flex items-center justify-center overflow-hidden mb-2">
+          <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuD6Y2VMcwNYS8OBl3wYmlib59JEielXcSYIpNmsoQmW2Yz8BgHUECYf1OJK56EHFKnZgXn-uCjGPK7e0dHDILwdFYVIKUk3o3eWMh5W2obeLhEFtztlpW5Lp2LCJ9fHGLZXEH-vBEFLnhnJ3ZagVjGXJhxg0geC97B96TcPHMpBa5jWgYFwWoEYaKSqLdxzpbh-ox4KlS-ZHBE_3pDi_I6_fjsDl3kYR4AGm9o4aNZi" class="object-cover w-full h-full"/>
+        </div>
+        <h4 class="font-bold text-sm">การ์ดจอ (GPU)</h4>
+        <p class="text-xs text-on-surface-variant mb-2">RTX 4090</p>
+        <button onclick="startARScan()" class="w-full py-1.5 rounded-lg bg-primary text-on-primary font-bold text-xs flex items-center justify-center gap-1 active:scale-95 transition-all">
+          <span class="material-symbols-outlined text-sm">view_in_ar</span> ดูโมเดล 3D
+        </button>
+      </div>
+
+      <!-- 02: CPU (LOCKED) -->
+      <div class="flex flex-col justify-between rounded-xl bg-surface-container-low p-3 opacity-60">
+        <div class="flex items-center justify-between mb-2">
+          <span class="px-2 py-0.5 rounded-full bg-surface-container-highest text-xs text-on-surface-variant">ล็อกอยู่</span>
+          <span class="text-xs text-on-surface-variant">02</span>
+        </div>
+        <div class="w-full h-20 rounded-lg bg-surface-container-lowest flex items-center justify-center mb-2">
+          <span class="material-symbols-outlined text-3xl text-on-surface-variant">developer_board</span>
+        </div>
+        <h4 class="font-bold text-sm">ซีพียู (CPU)</h4>
+        <p class="text-xs text-on-surface-variant mb-2">หน่วยประมวลผล</p>
+        <button onclick="startARScan()" class="w-full py-1.5 rounded-lg bg-surface-container-high text-xs text-primary flex items-center justify-center gap-1">
+          <span class="material-symbols-outlined text-sm">qr_code_scanner</span> สแกน AR
+        </button>
+      </div>
+
+      <!-- 03-10 Items (Placeholders) -->
+      <div class="flex flex-col justify-between rounded-xl bg-surface-container-low p-3 opacity-50">
+        <span class="text-xs text-on-surface-variant mb-2">03 • เมนบอร์ด</span>
+        <div class="w-full h-16 rounded bg-surface-container-lowest flex items-center justify-center"><span class="material-symbols-outlined">grid_goldenratio</span></div>
+      </div>
+      <div class="flex flex-col justify-between rounded-xl bg-surface-container-low p-3 opacity-50">
+        <span class="text-xs text-on-surface-variant mb-2">04 • แรม (RAM)</span>
+        <div class="w-full h-16 rounded bg-surface-container-lowest flex items-center justify-center"><span class="material-symbols-outlined">memory</span></div>
+      </div>
+      <div class="flex flex-col justify-between rounded-xl bg-surface-container-low p-3 opacity-50">
+        <span class="text-xs text-on-surface-variant mb-2">05 • เอสเอสดี (SSD)</span>
+        <div class="w-full h-16 rounded bg-surface-container-lowest flex items-center justify-center"><span class="material-symbols-outlined">save</span></div>
+      </div>
+      <div class="flex flex-col justify-between rounded-xl bg-surface-container-low p-3 opacity-50">
+        <span class="text-xs text-on-surface-variant mb-2">06 • พาวเวอร์ซัพพลาย</span>
+        <div class="w-full h-16 rounded bg-surface-container-lowest flex items-center justify-center"><span class="material-symbols-outlined">power</span></div>
+      </div>
+      <div class="flex flex-col justify-between rounded-xl bg-surface-container-low p-3 opacity-50">
+        <span class="text-xs text-on-surface-variant mb-2">07 • ชุดน้ำระบายความร้อน</span>
+        <div class="w-full h-16 rounded bg-surface-container-lowest flex items-center justify-center"><span class="material-symbols-outlined">mode_fan</span></div>
+      </div>
+      <div class="flex flex-col justify-between rounded-xl bg-surface-container-low p-3 opacity-50">
+        <span class="text-xs text-on-surface-variant mb-2">08 • เคสคอมพิวเตอร์</span>
+        <div class="w-full h-16 rounded bg-surface-container-lowest flex items-center justify-center"><span class="material-symbols-outlined">computer</span></div>
+      </div>
+      <div class="flex flex-col justify-between rounded-xl bg-surface-container-low p-3 opacity-50">
+        <span class="text-xs text-on-surface-variant mb-2">09 • สายไฟ & พัดลม</span>
+        <div class="w-full h-16 rounded bg-surface-container-lowest flex items-center justify-center"><span class="material-symbols-outlined">cable</span></div>
+      </div>
+      <div class="flex flex-col justify-between rounded-xl bg-surface-container-low p-3 opacity-50">
+        <span class="text-xs text-on-surface-variant mb-2">10 • จอภาพ (Monitor)</span>
+        <div class="w-full h-16 rounded bg-surface-container-lowest flex items-center justify-center"><span class="material-symbols-outlined">tv</span></div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Sticky Bottom Scan Button -->
+  <div class="fixed bottom-6 inset-x-0 z-40 px-4 flex justify-center max-w-md mx-auto">
+    <button onclick="startARScan()" class="w-full h-14 rounded-full bg-primary text-on-primary font-bold text-base flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(75,226,119,0.5)] active:scale-95 transition-all">
+      <span class="material-symbols-outlined text-xl">photo_camera</span>
+      <span>สแกนชิ้นส่วน AR ในห้อง</span>
+    </button>
   </div>
 
-  <a-scene 
-    mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; uiLoading: no; uiError: no;" 
-    embedded
-    color-space="sRGB" 
-    renderer="colorManagement: true; precision: medium; alpha: true;" 
-    vr-mode-ui="enabled: false" 
-    device-orientation-permission-ui="enabled: false">
-    
-    <a-ambient-light color="#ffffff" intensity="3.0"></a-ambient-light>
-    <a-directional-light position="1 2 3" intensity="2.0"></a-directional-light>
-    
-    <a-camera id="main-camera" position="0 0 0" look-controls="enabled: false">
-      <a-entity id="camera-freeze-container" position="0 0 -1.5"></a-entity>
-    </a-camera>
+  <!-- AR Camera Overlay Screen -->
+  <div id="ar-view">
+    <div class="absolute top-4 left-4 right-4 z-[110] flex justify-between items-center">
+      <button onclick="stopARScan()" class="px-4 py-2 rounded-full bg-surface-container-high/90 text-on-surface font-bold text-xs flex items-center gap-1 shadow-lg border border-primary/30 backdrop-blur">
+        <span class="material-symbols-outlined text-sm">arrow_back</span> ย้อนกลับหน้าหลัก
+      </button>
+      <button onclick="resetARModel()" class="px-4 py-2 rounded-full bg-primary text-on-primary font-bold text-xs flex items-center gap-1 shadow-lg">
+        <span class="material-symbols-outlined text-sm">refresh</span> สแกนใหม่
+      </button>
+    </div>
 
-    <a-entity id="ar-container"></a-entity>
-  </a-scene>
+    <div id="ar-info-card" class="absolute bottom-6 left-4 right-4 z-[110] hidden p-4 rounded-2xl bg-surface-container/95 border border-primary/40 backdrop-blur-xl shadow-2xl">
+      <h4 id="ar-title" class="text-primary font-bold text-lg mb-1">NVIDIA GeForce RTX (GPU)</h4>
+      <p id="ar-desc" class="text-xs text-on-surface-variant mb-2">การ์ดจอทำหน้าที่ประมวลผลภาพและกราฟิก 3D</p>
+      <span class="text-[10px] text-on-surface-variant border-t border-surface-container-high pt-2 block">💡 ใช้นิ้วลากเพื่อหมุน | ถ่างนิ้วเพื่อซูมเข้า-ออก</span>
+    </div>
 
+    <!-- MindAR Scene -->
+    <a-scene mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: no; uiError: no;" embedded color-space="sRGB" renderer="colorManagement: true; precision: medium; alpha: true;" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+      <a-ambient-light color="#ffffff" intensity="2.5"></a-ambient-light>
+      <a-directional-light position="1 2 3" intensity="1.5"></a-directional-light>
+      <a-camera id="main-camera" position="0 0 0" look-controls="enabled: false">
+        <a-entity id="camera-freeze-container" position="0 0 -1.5"></a-entity>
+      </a-camera>
+      <a-entity id="ar-container"></a-entity>
+    </a-scene>
+  </div>
+
+  <!-- Interactive JavaScript -->
   <script>
-    function showError(msg) {
-      const log = document.getElementById('error-log');
-      log.style.display = 'block';
-      log.innerHTML = '⚠️ ' + msg;
-    }
-
-    window.onerror = function(msg) {
-      showError('เกิดข้อผิดพลาด: ' + msg);
-      return false;
-    };
-
+    const arView = document.getElementById('ar-view');
     const container = document.getElementById('ar-container');
     const freezeContainer = document.getElementById('camera-freeze-container');
+    const arInfoCard = document.getElementById('ar-info-card');
     
     let isTracked = false;
     let activeModelEntity = null;
-
     let isDragging = false;
     let previousTouchPosition = { x: 0, y: 0 };
     let initialPinchDistance = null;
-    let currentScaleVal = 0.02; // ปรับสเกลเริ่มต้นเล็กลงมาที่ 0.02
+    let currentScaleVal = 0.05;
+
+    // เปิดกล้อง AR
+    function startARScan() {
+      arView.style.display = 'block';
+      const sceneEl = document.querySelector('a-scene');
+      sceneEl.systems['mindar-image-system'].start();
+      
+      if (typeof gpuData !== 'undefined' && container.children.length === 0) {
+        loadARItem(gpuData);
+      }
+    }
+
+    // ปิดกล้อง AR ย้อนกลับหน้าหลัก
+    function stopARScan() {
+      arView.style.display = 'none';
+      const sceneEl = document.querySelector('a-scene');
+      sceneEl.systems['mindar-image-system'].stop();
+    }
+
+    // ตอบควิซ
+    function answerQuiz(isCorrect) {
+      if (isCorrect) {
+        alert('🎉 ตอบถูกต้อง! คุณได้รับ +50 XP');
+      } else {
+        alert('❌ ยังไม่ถูกต้อง ลองใหม่อีกครั้งนะครับ');
+      }
+    }
 
     function loadARItem(itemData) {
-      if (!itemData) return;
-
       const targetEntity = document.createElement('a-entity');
       targetEntity.setAttribute('mindar-image-target', `targetIndex: ${itemData.targetIndex}`);
 
-      // สร้าง Wrapper Entity
       const modelWrapper = document.createElement('a-entity');
       
-      // 1. โมเดล 3D การ์ดจอ (ปรับสเกล 0.02)
       const modelEntity = document.createElement('a-entity');
       modelEntity.setAttribute('gltf-model', itemData.model);
-      modelEntity.setAttribute('scale', '0.02 0.02 0.02');
+      modelEntity.setAttribute('scale', '0.05 0.05 0.05');
       modelEntity.setAttribute('position', '0 0 0');
-      modelEntity.setAttribute('rotation', itemData.rotation || '0 0 0');
       
-      // 2. กล่องทดสอบสีส้ม (ถ้าเห็นกล่อง แปลว่าตำแหน่งถูกต้อง)
       const testBox = document.createElement('a-box');
-      testBox.setAttribute('color', '#f97316');
-      testBox.setAttribute('scale', '0.3 0.3 0.3');
-      testBox.setAttribute('position', '0 -0.4 0');
-
-      modelEntity.addEventListener('model-error', (e) => {
-        showError('โหลดไฟล์ ' + itemData.model + ' ไม่สำเร็จ! เช็กว่าไฟล์ชื่อตรงกันบน GitHub');
-      });
+      testBox.setAttribute('color', '#22c55e');
+      testBox.setAttribute('scale', '0.2 0.2 0.2');
+      testBox.setAttribute('position', '0 -0.3 0');
 
       modelWrapper.appendChild(modelEntity);
       modelWrapper.appendChild(testBox);
@@ -146,13 +326,7 @@
       targetEntity.addEventListener("targetFound", () => {
         if (!isTracked) {
           isTracked = true;
-
-          document.getElementById('card-title').innerText = itemData.title || 'ข้อมูลอุปกรณ์';
-          document.getElementById('card-desc').innerText = itemData.desc || '';
-          document.getElementById('info-card').style.display = 'block';
-          document.getElementById('reset-btn').style.display = 'block';
-          document.getElementById('scan-guide').style.display = 'none';
-
+          arInfoCard.style.display = 'block';
           freezeContainer.appendChild(modelWrapper);
           activeModelEntity = modelWrapper;
         }
@@ -161,33 +335,21 @@
       container.appendChild(targetEntity);
     }
 
-    function resetScanner() {
-      if (activeModelEntity) {
-        activeModelEntity.remove();
-        activeModelEntity = null;
-      }
+    function resetARModel() {
+      if (activeModelEntity) { activeModelEntity.remove(); activeModelEntity = null; }
       isTracked = false;
-      currentScaleVal = 0.02;
-
-      document.getElementById('info-card').style.display = 'none';
-      document.getElementById('reset-btn').style.display = 'none';
-      document.getElementById('scan-guide').style.display = 'block';
-      document.getElementById('error-log').style.display = 'none';
-
+      currentScaleVal = 0.05;
+      arInfoCard.style.display = 'none';
       container.innerHTML = '';
-      if (typeof gpuData !== 'undefined') {
-        loadARItem(gpuData);
-      }
+      if (typeof gpuData !== 'undefined') { loadARItem(gpuData); }
     }
 
     function getPinchDistance(touches) {
-      return Math.hypot(
-        touches[0].clientX - touches[1].clientX,
-        touches[0].clientY - touches[1].clientY
-      );
+      return Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
     }
 
     window.addEventListener('touchstart', (e) => {
+      if (!isTracked) return;
       if (e.touches.length === 1) {
         isDragging = true;
         previousTouchPosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
@@ -198,44 +360,27 @@
     });
 
     window.addEventListener('touchmove', (e) => {
-      if (!activeModelEntity) return;
-
+      if (!isTracked || !activeModelEntity) return;
       if (isDragging && e.touches.length === 1) {
         const deltaX = e.touches[0].clientX - previousTouchPosition.x;
         const deltaY = e.touches[0].clientY - previousTouchPosition.y;
-
         const currentRot = activeModelEntity.getAttribute('rotation');
         activeModelEntity.setAttribute('rotation', {
           x: currentRot.x + deltaY * 0.4,
           y: currentRot.y + deltaX * 0.4,
           z: currentRot.z
         });
-
         previousTouchPosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-      } 
-      else if (e.touches.length === 2 && initialPinchDistance) {
+      } else if (e.touches.length === 2 && initialPinchDistance) {
         const currentDistance = getPinchDistance(e.touches);
         const factor = currentDistance / initialPinchDistance;
-
         currentScaleVal = Math.min(Math.max(currentScaleVal * factor, 0.001), 1.0);
-        activeModelEntity.setAttribute('scale', `${currentScaleVal} ${currentScaleVal} ${currentScaleVal}`);
-        
+        activeModelEntity.setAttribute('scale', `${currentScaleVal/0.05} ${currentScaleVal/0.05} ${currentScaleVal/0.05}`);
         initialPinchDistance = currentDistance;
       }
     });
 
-    window.addEventListener('touchend', (e) => {
-      if (e.touches.length < 2) initialPinchDistance = null;
-      if (e.touches.length === 0) isDragging = false;
-    });
-
-    window.addEventListener('DOMContentLoaded', () => {
-      if (typeof gpuData !== 'undefined') {
-        loadARItem(gpuData);
-      } else {
-        showError('ไม่พบข้อมูลไฟล์ js/gpu.js');
-      }
-    });
+    window.addEventListener('touchend', () => { isDragging = false; initialPinchDistance = null; });
   </script>
 </body>
 </html>
