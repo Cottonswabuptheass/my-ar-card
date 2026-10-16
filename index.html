@@ -54,26 +54,6 @@
       background: #0f131c;
       overflow: hidden;
     }
-
-    a-scene, canvas.a-canvas {
-      width: 100vw !important;
-      height: 100vh !important;
-      position: absolute !important;
-      top: 0 !important;
-      left: 0 !important;
-    }
-    
-    #ar-view video {
-      object-fit: cover !important;
-      width: 100vw !important;
-      height: 100vh !important;
-      position: absolute !important;
-      top: 0 !important;
-      left: 0 !important;
-      right: 0 !important;
-      bottom: 0 !important;
-      margin: auto !important;
-    }
   </style>
 </head>
 
@@ -146,7 +126,7 @@
               <p class="text-xs text-on-surface-variant">คลิกเพื่อดูแบบทดสอบการ์ดจอ (GPU)</p>
             </div>
           </div>
-          <span id="quiz-btn-status" class="px-3 py-1 rounded-full bg-primary/20 text-primary text-xs font-bold">เริ่มทำข้อสอบ</span>
+          <span id="quiz-btn-status" class="px-3 py-1 rounded-full bg-primary/20 text-primary text-xs font-bold">ทำข้อสอบ</span>
         </div>
       </div>
     </section>
@@ -199,7 +179,7 @@
     </button>
   </div>
 
-  <!-- Popup Modal ทำแบบทดสอบ (โหมดดูเฉลย View-Only เมื่อตอบแล้ว) -->
+  <!-- Popup Modal ทำแบบทดสอบ ( View-Only Mode เมื่อทำแล้ว ) -->
   <div id="quiz-modal" class="fixed inset-0 z-[999999] hidden flex items-center justify-center bg-black/80 backdrop-blur-md px-4">
     <div class="w-full max-w-sm rounded-3xl bg-surface-container p-6 border border-primary/40 shadow-2xl relative">
       <button onclick="closeQuizModal()" class="absolute top-4 right-4 text-on-surface-variant hover:text-primary">
@@ -231,7 +211,7 @@
     </div>
   </div>
 
-  <!-- AR Camera Fullscreen View -->
+  <!-- AR Camera Fullscreen View Wrapper -->
   <div id="ar-view">
     <div class="absolute top-4 left-4 right-4 z-[100000] flex justify-between items-center pointer-events-auto">
       <button onclick="stopARScan()" class="px-3 py-2 rounded-full bg-surface-container-high/90 text-on-surface font-bold text-xs flex items-center gap-1 shadow-lg border border-primary/30 backdrop-blur cursor-pointer">
@@ -261,16 +241,8 @@
       </div>
     </div>
 
-    <a-scene id="ar-scene-el" mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: no; uiError: no;" embedded color-space="sRGB" renderer="colorManagement: true; precision: medium; alpha: true;" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
-      <a-ambient-light color="#ffffff" intensity="2.5"></a-ambient-light>
-      <a-directional-light position="1 2 3" intensity="1.5"></a-directional-light>
-      
-      <a-camera id="main-camera" position="0 0 0" look-controls="enabled: false">
-        <a-entity id="camera-freeze-container" position="0 0 -1.6" rotation="0 0 0"></a-entity>
-      </a-camera>
-      
-      <a-entity id="ar-container"></a-entity>
-    </a-scene>
+    <!-- Dynamic AR Scene Container (สร้างและทำลายทิ้งเพื่อแก้กล้องค้าง 100%) -->
+    <div id="scene-wrapper" class="w-full h-full"></div>
   </div>
 
   <!-- Audio Background Player -->
@@ -331,7 +303,7 @@
     }
   </script>
 
-  <!-- Game Logic & View-Only Quiz System -->
+  <!-- Game Logic & Strict Anti-Farm Quiz System -->
   <script>
     let currentXP = parseInt(localStorage.getItem('ar_xp')) || 0;
     let unlockedCount = parseInt(localStorage.getItem('ar_unlocked')) || 0;
@@ -359,7 +331,7 @@
     }
 
     function answerQuiz(isCorrect, optIndex) {
-      if (hasUnlockedGPU) return; // ป้องกันการกดซ้ำ
+      if (hasUnlockedGPU) return; // ล็อกไม่ให้กดซ้ำเด็ดขาด
 
       const btnElement = document.getElementById(`opt-${optIndex}`);
 
@@ -392,21 +364,20 @@
       }
     }
 
-    // เปลี่ยนเป็นโหมดดูเฉลยอย่างเดียว (กดไม่ได้ แต่แสดงผลปกติ)
     function applyViewOnlyQuizMode() {
       document.getElementById('quiz-status-text').innerText = "✅ แบบทดสอบนี้ทำเสร็จแล้ว (โหมดดูเฉลย)";
       document.getElementById('current-xp-reward').innerText = "ปลดล็อกแล้ว";
       
       const buttons = document.querySelectorAll('.quiz-option-btn');
       buttons.forEach((btn, idx) => {
-        btn.style.pointerEvents = 'none'; // ปิดการคลิกทุกปุ่ม
+        btn.style.pointerEvents = 'none';
         if (idx === 0) {
-          // ไฮไลต์ข้อที่ถูก (ข้อ A) ให้เป็นสีเขียวเด่นชัด
           btn.style.background = 'rgba(75, 226, 119, 0.15)';
           btn.style.borderColor = '#4be277';
           btn.style.color = '#4be277';
+          btn.style.opacity = '1';
         } else {
-          btn.style.opacity = '0.5';
+          btn.style.opacity = '0.4';
         }
       });
     }
@@ -444,15 +415,17 @@
     }
   </script>
 
-  <!-- AR & App Logic -->
+  <!-- AR & Camera Dynamic Cleanup Logic (แก้กล้องค้าง 100% ด้วยการทำลาย Scene ทิ้ง) -->
   <script>
     const arView = document.getElementById('ar-view');
-    const container = document.getElementById('ar-container');
-    const freezeContainer = document.getElementById('camera-freeze-container');
-    const arInfoCard = document.getElementById('ar-info-card');
+    const sceneWrapper = document.getElementById('scene-wrapper');
     
     let isTracked = false;
     let activeModelEntity = null;
+    let container = null;
+    let freezeContainer = null;
+    let arInfoCard = null;
+    
     let isDragging = false;
     let previousTouchPosition = { x: 0, y: 0 };
     let initialPinchDistance = null;
@@ -460,28 +433,50 @@
 
     function startARScan() {
       arView.style.display = 'block';
-      const sceneEl = document.getElementById('ar-scene-el');
       
-      if (sceneEl && sceneEl.systems && sceneEl.systems['mindar-image-system']) {
-        sceneEl.systems['mindar-image-system'].start();
-      }
-      
-      if (typeof gpuData !== 'undefined' && container.children.length === 0) {
+      // สร้าง Scene สดๆ ใหม่ทุกครั้งที่เปิด เพื่อป้องกันสตรีมกล้องค้าง
+      sceneWrapper.innerHTML = `
+        <div id="ar-info-card" class="absolute bottom-6 left-4 right-4 z-[100000] hidden p-4 rounded-2xl bg-surface-container/95 border border-primary/40 backdrop-blur-xl shadow-2xl pointer-events-auto">
+          <div class="flex items-center justify-between mb-1">
+            <h4 class="text-primary font-bold text-base">การ์ดจอ (GPU - RTX 4090)</h4>
+            <span class="px-2 py-0.5 rounded-full bg-primary/20 text-primary text-[10px] font-bold">AR Active</span>
+          </div>
+          <p class="text-xs text-on-surface-variant mb-2 leading-relaxed">
+            ทำหน้าที่ประมวลผลภาพกราฟิก 3D และเรนเดอร์ภาพออกจอคอมพิวเตอร์ มีพัดลมระบายความร้อนประสิทธิภาพสูง
+          </p>
+          <div class="border-t border-surface-container-high pt-2 flex items-center justify-between text-[10px] text-primary">
+            <span>🎉 สแกนเจอโมเดล 3D สำเร็จ!</span>
+            <span>💡 ใช้นิ้วลากเพื่อหมุน | ถ่างเพื่อซูม</span>
+          </div>
+        </div>
+        <a-scene id="ar-scene-el" mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; uiLoading: no; uiError: no;" embedded color-space="sRGB" renderer="colorManagement: true; precision: medium; alpha: true;" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+          <a-ambient-light color="#ffffff" intensity="2.5"></a-ambient-light>
+          <a-directional-light position="1 2 3" intensity="1.5"></a-directional-light>
+          <a-camera id="main-camera" position="0 0 0" look-controls="enabled: false">
+            <a-entity id="camera-freeze-container" position="0 0 -1.6" rotation="0 0 0"></a-entity>
+          </a-camera>
+          <a-entity id="ar-container"></a-entity>
+        </a-scene>
+      `;
+
+      container = document.getElementById('ar-container');
+      freezeContainer = document.getElementById('camera-freeze-container');
+      arInfoCard = document.getElementById('ar-info-card');
+      isTracked = false;
+      activeModelEntity = null;
+
+      if (typeof gpuData !== 'undefined') {
         loadARItem(gpuData);
       }
     }
 
     function stopARScan() {
       arView.style.display = 'none';
-      arInfoCard.style.display = 'none';
-      
-      const sceneEl = document.getElementById('ar-scene-el');
-      if (sceneEl && sceneEl.systems && sceneEl.systems['mindar-image-system']) {
-        try {
-          sceneEl.systems['mindar-image-system'].stop();
-        } catch(e) {}
-      }
 
+      // ทำลาย Scene และสตรีมกล้องทั้งหมดทิ้งอย่างเด็ดขาด
+      sceneWrapper.innerHTML = '';
+
+      // เคลียร์แท็กวิดีโอของกล้องที่เบราว์เซอร์เปิดค้างไว้
       const videos = document.querySelectorAll('video');
       videos.forEach(video => {
         if (video.srcObject) {
@@ -494,11 +489,11 @@
     }
 
     function loadARItem(itemData) {
+      if (!container) return;
       const targetEntity = document.createElement('a-entity');
       targetEntity.setAttribute('mindar-image-target', `targetIndex: ${itemData.targetIndex}`);
 
       const modelWrapper = document.createElement('a-entity');
-      
       const modelEntity = document.createElement('a-entity');
       modelEntity.setAttribute('gltf-model', itemData.model);
       modelEntity.setAttribute('scale', '0.05 0.05 0.05');
@@ -508,10 +503,10 @@
       targetEntity.appendChild(modelWrapper);
 
       targetEntity.addEventListener("targetFound", () => {
-        if (!isTracked) {
+        if (!isTracked && arInfoCard) {
           isTracked = true;
           arInfoCard.style.display = 'block';
-          freezeContainer.appendChild(modelWrapper);
+          if (freezeContainer) freezeContainer.appendChild(modelWrapper);
           activeModelEntity = modelWrapper;
         }
       });
@@ -523,8 +518,8 @@
       if (activeModelEntity) { activeModelEntity.remove(); activeModelEntity = null; }
       isTracked = false;
       currentScaleVal = 0.08;
-      arInfoCard.style.display = 'none';
-      container.innerHTML = '';
+      if (arInfoCard) arInfoCard.style.display = 'none';
+      if (container) container.innerHTML = '';
       if (typeof gpuData !== 'undefined') { loadARItem(gpuData); }
     }
 
