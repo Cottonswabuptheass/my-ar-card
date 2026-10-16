@@ -44,7 +44,7 @@
     }
     .neon-pulse { animation: pulse-neon 2s cubic-bezier(0.4,0,0.6,1) infinite; }
     
-    /* 🔴 สีแดง: ขยายหน้าจอ AR เต็มจอ 100% ไร้ขอบ */
+    /* บังคับให้หน้าจอ AR และ Canvas ขยายเต็มจอ 100% ไร้ขอบดำ */
     #ar-view {
       display: none;
       position: fixed;
@@ -53,13 +53,23 @@
       background: #0f131c;
       overflow: hidden;
     }
-    a-scene { width: 100% !important; height: 100% !important; position: absolute !important; top: 0; left: 0; }
     
-    /* ปรับแต่งวิดีโอของกล้องให้ยืดเต็มจอแบบ Cover */
+    a-scene {
+      width: 100vw !important;
+      height: 100vh !important;
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+    }
+
+    /* บังคับวิดีโอจากกล้องมือถือให้ยืดเต็มจอแบบไม่มีช่องว่าง */
     video {
       object-fit: cover !important;
       width: 100vw !important;
       height: 100vh !important;
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
     }
   </style>
 </head>
@@ -122,7 +132,7 @@
       </div>
     </section>
 
-    <!-- 🔵 สีฟ้า: หัวข้อทำแบบสอบถาม (คลิกเพื่อเปิด Popup Modal ทำควิซ) -->
+    <!-- หัวข้อทำแบบสอบถาม หน้าหลัก -->
     <section class="mb-6">
       <div onclick="openQuizModal()" class="rounded-2xl bg-surface-container/95 p-4 border border-primary/40 cursor-pointer active:scale-95 transition-all shadow-lg hover:border-primary">
         <div class="flex items-center justify-between">
@@ -186,7 +196,7 @@
     </button>
   </div>
 
-  <!-- 🔵 สีฟ้า: Popup Modal ทำแบบทดสอบ -->
+  <!-- Popup Modal ทำแบบทดสอบ -->
   <div id="quiz-modal" class="fixed inset-0 z-[999999] hidden flex items-center justify-center bg-black/80 backdrop-blur-md px-4">
     <div class="w-full max-w-sm rounded-3xl bg-surface-container p-6 border border-primary/40 shadow-2xl relative">
       <button onclick="closeQuizModal()" class="absolute top-4 right-4 text-on-surface-variant hover:text-primary">
@@ -198,7 +208,7 @@
       </div>
       <div class="flex items-center justify-between mb-3">
         <span class="text-xs text-on-surface-variant">เลือกคำตอบที่ถูกต้องที่สุด</span>
-        <!-- 🟡 สีเหลือง: คะแนนเริ่มต้น 100 XP หักครั้งละ 20 XP -->
+        <!-- คะแนนเริ่มต้น 100 XP หักครั้งละ 20 XP -->
         <span id="current-xp-reward" class="px-2.5 py-0.5 rounded-full bg-tertiary/20 text-tertiary text-xs font-bold">รางวัล: 100 XP</span>
       </div>
       <p class="text-sm mb-4 text-on-surface font-medium">หน้าที่หลักของ GPU ในคอมพิวเตอร์คือข้อใด?</p>
@@ -221,17 +231,24 @@
 
   <!-- AR Camera Fullscreen View -->
   <div id="ar-view">
+    <!-- ปุ่มควบคุมด้านบน (เพิ่มปุ่มกดทำแบบทดสอบตรงนี้แล้ว!) -->
     <div class="absolute top-4 left-4 right-4 z-[100000] flex justify-between items-center pointer-events-auto">
-      <button onclick="stopARScan()" class="px-4 py-2 rounded-full bg-surface-container-high/90 text-on-surface font-bold text-xs flex items-center gap-1 shadow-lg border border-primary/30 backdrop-blur cursor-pointer">
-        <span class="material-symbols-outlined text-sm">arrow_back</span> ย้อนกลับหน้าหลัก
+      <button onclick="stopARScan()" class="px-3 py-2 rounded-full bg-surface-container-high/90 text-on-surface font-bold text-xs flex items-center gap-1 shadow-lg border border-primary/30 backdrop-blur cursor-pointer">
+        <span class="material-symbols-outlined text-sm">arrow_back</span> ย้อนกลับ
       </button>
-      <button onclick="resetARModel()" class="px-4 py-2 rounded-full bg-primary text-on-primary font-bold text-xs flex items-center gap-1 shadow-lg cursor-pointer">
-        <span class="material-symbols-outlined text-sm">refresh</span> รีเซ็ตโมเดล
+
+      <!-- ปุ่มเปิดแบบทดสอบในหน้า AR -->
+      <button onclick="openQuizModal()" class="px-3 py-2 rounded-full bg-primary text-on-primary font-bold text-xs flex items-center gap-1 shadow-lg cursor-pointer neon-pulse">
+        <span class="material-symbols-outlined text-sm">quiz</span> ทำแบบทดสอบ (100 XP)
+      </button>
+
+      <button onclick="resetARModel()" class="px-3 py-2 rounded-full bg-surface-container-high/90 text-on-surface font-bold text-xs flex items-center gap-1 shadow-lg border border-primary/30 backdrop-blur cursor-pointer">
+        <span class="material-symbols-outlined text-sm">refresh</span> รีเซ็ต
       </button>
     </div>
 
-    <!-- 🟢 สีเขียว: การ์ดแสดงความรู้และข้อมูลโมเดล 3D ตรงกลาง/ล่างจอ AR -->
-    <div id="ar-info-card" class="absolute bottom-6 left-4 right-4 z-[100000] hidden p-4 rounded-2xl bg-surface-container/95 border border-primary/40 backdrop-blur-xl shadow-2xl pointer-events-auto">
+    <!-- การ์ดแสดงความรู้และข้อมูลโมเดล 3D -->
+    <div id="ar-info-card" class="absolute bottom-6 left-4 right-4 z-[100000] p-4 rounded-2xl bg-surface-container/95 border border-primary/40 backdrop-blur-xl shadow-2xl pointer-events-auto">
       <div class="flex items-center justify-between mb-1">
         <h4 class="text-primary font-bold text-base">การ์ดจอ (GPU - RTX 4090)</h4>
         <span class="px-2 py-0.5 rounded-full bg-primary/20 text-primary text-[10px] font-bold">AR Active</span>
@@ -245,12 +262,11 @@
       </div>
     </div>
 
-    <!-- 🟢 สีเขียว: MindAR Scene พร้อมจัดตำแหน่งโมเดล 3D ให้อยู่กึ่งกลางจอเป๊ะๆ -->
+    <!-- MindAR Scene เต็มจอ 100% -->
     <a-scene id="ar-scene-el" mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: no; uiError: no;" embedded color-space="sRGB" renderer="colorManagement: true; precision: medium; alpha: true;" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
       <a-ambient-light color="#ffffff" intensity="2.5"></a-ambient-light>
       <a-directional-light position="1 2 3" intensity="1.5"></a-directional-light>
       
-      <!-- จัดตำแหน่งกล้องและจุดกึ่งกลางโมเดล 3D -->
       <a-camera id="main-camera" position="0 0 0" look-controls="enabled: false">
         <a-entity id="camera-freeze-container" position="0 0 -1.6" rotation="0 0 0"></a-entity>
       </a-camera>
@@ -317,11 +333,11 @@
     }
   </script>
 
-  <!-- Game Logic & Quiz Modal System -->
+  <!-- Game Logic & Quiz Modal System (XP 100 -> Minus 20) -->
   <script>
     let currentXP = 0;
     let unlockedCount = 0;
-    let currentXPReward = 100; // 🟡 สีเหลือง: คะแนนเริ่มต้น 100 XP
+    let currentXPReward = 100; // คะแนนเริ่มต้น 100 XP
     let hasUnlockedGPU = false;
 
     function openQuizModal() {
@@ -340,8 +356,9 @@
         hasUnlockedGPU = true;
 
         closeQuizModal();
+        stopARScan();
 
-        // อัปเดต UI หน้าหลักทันที
+        // อัปเดต UI หน้าหลัก
         document.getElementById('progress-text').innerText = `ปลดล็อกแล้ว ${unlockedCount} / 10 ชิ้น`;
         document.getElementById('xp-text').innerText = `${currentXP} XP`;
         document.getElementById('p-0').className = "rounded bg-primary shadow-[0_0_8px_#4be277]";
@@ -363,7 +380,7 @@
           </button>
         `;
       } else {
-        // 🟡 สีเหลือง: ตอบผิด หักครั้งละ 20 XP ขั้นต่ำเหลือ 20 XP
+        // ตอบผิด หักครั้งละ 20 XP ขั้นต่ำเหลือ 20 XP
         currentXPReward = Math.max(20, currentXPReward - 20);
         document.getElementById('current-xp-reward').innerText = `รางวัล: ${currentXPReward} XP`;
         alert(`❌ ยังไม่ถูกต้อง! โดนหัก 20 XP เหลือรางวัลรอบนี้: ${currentXPReward} XP (ลองเลือกข้ออื่นใหม่)`);
@@ -385,7 +402,6 @@
     const arView = document.getElementById('ar-view');
     const container = document.getElementById('ar-container');
     const freezeContainer = document.getElementById('camera-freeze-container');
-    const arInfoCard = document.getElementById('ar-info-card');
     
     let isTracked = false;
     let activeModelEntity = null;
@@ -429,11 +445,9 @@
       modelWrapper.appendChild(modelEntity);
       targetEntity.appendChild(modelWrapper);
 
-      // 🟢 สีเขียว: เมื่อสแกนเจอ ให้นำโมเดล 3D มาล็อกไว้ตรงกลางจอทันที พร้อมแสดงการ์ดความรู้
       targetEntity.addEventListener("targetFound", () => {
         if (!isTracked) {
           isTracked = true;
-          arInfoCard.style.display = 'block';
           freezeContainer.appendChild(modelWrapper);
           activeModelEntity = modelWrapper;
         }
@@ -446,7 +460,6 @@
       if (activeModelEntity) { activeModelEntity.remove(); activeModelEntity = null; }
       isTracked = false;
       currentScaleVal = 0.08;
-      arInfoCard.style.display = 'none';
       container.innerHTML = '';
       if (typeof gpuData !== 'undefined') { loadARItem(gpuData); }
     }
