@@ -386,7 +386,7 @@
     }
   </script>
 
-  <!-- AR & Camera Dynamic Cleanup Logic -->
+  <!-- AR & Camera Dynamic Cleanup Logic (กวาดล้างเกลี้ยง 100%) -->
   <script>
     const arView = document.getElementById('ar-view');
     const sceneWrapper = document.getElementById('scene-wrapper');
@@ -480,22 +480,22 @@
         videoForceInterval = null;
       }
 
-      // 🔴 เคลียร์เนื้อหาและทำลาย canvas ตกค้างทั้งหมดทิ้งทันที
+      // 🔴 กวาดล้างทำลาย Scene ทิ้ง
       sceneWrapper.innerHTML = '';
 
-      // กวาดล้าง canvas และ video ที่แอบสร้างนอก wrapper ออกให้เกลี้ยง
-      const strayCanvases = document.querySelectorAll('canvas.a-canvas');
-      strayCanvases.forEach(c => c.remove());
-
-      const videos = document.querySelectorAll('video');
-      videos.forEach(video => {
-        if (video.srcObject) {
-          const tracks = video.srcObject.getTracks();
-          tracks.forEach(track => track.stop());
-          video.srcObject = null;
+      // 🔴 โค้ดกำจัดคราบแถบขาว/เทา: กวาดล้าง canvas, video และ UI overlay ทั้งหมดที่แอบสร้างนอก ar-view ทิ้งให้เกลี้ยง
+      const strayElements = document.querySelectorAll('canvas, video, .mindar-ui-overlay, .a-enter-vr');
+      strayElements.forEach(el => {
+        // ป้องกันไม่ให้เผลอลบ element หลักของหน้าเว็บ
+        if (!el.closest('#inventory-grid-container') && !el.closest('header') && !el.closest('main')) {
+          el.remove();
         }
-        video.remove();
       });
+
+      // สั่งปิดกล้องสตรีมทั้งหมดแบบเด็ดขาด
+      navigator.mediaDevices?.getUserMedia({ video: true }).then(stream => {
+        stream.getTracks().forEach(track => track.stop());
+      }).catch(e => {});
     }
 
     function loadARItem(itemData) {
