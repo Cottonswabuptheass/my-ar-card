@@ -3,14 +3,13 @@
 <head>
   <meta charset="utf-8"/>
   <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
-  <title>AR PC BUILDER</title>
+  <title id="t-title">AR PC BUILDER</title>
   
   <link href="https://fonts.googleapis.com" rel="preconnect"/>
   <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
   
-  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script id="tailwind-config">
     tailwind.config = {
@@ -34,7 +33,6 @@
     };
   </script>
 
-  <!-- AR Libraries -->
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
   <script src="./js/gpu.js"></script>
@@ -46,15 +44,14 @@
     }
     .neon-pulse { animation: pulse-neon 2s cubic-bezier(0.4,0,0.6,1) infinite; }
     
-    /* ซ่อนฉาก A-Frame ไว้ตอนเปิดเว็บ */
     #ar-view {
       display: none;
       position: fixed;
-      inset: 0;
-      z-index: 100;
-      background: transparent !important;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      z-index: 99999;
+      background: #0f131c;
     }
-    a-scene { background: transparent !important; }
+    a-scene { width: 100% !important; height: 100% !important; background: transparent !important; }
   </style>
 </head>
 
@@ -69,16 +66,16 @@
           <span class="font-bold text-lg tracking-wider text-on-surface">AR PC BUILDER</span>
           <span class="text-[10px] text-primary uppercase px-1.5 py-0.5 rounded bg-surface-container-high font-semibold">AR//LAB</span>
         </div>
-        <span class="text-xs text-on-surface-variant">สื่อการเรียนรู้ประกอบคอมฯ</span>
+        <span id="t-subtitle" class="text-xs text-on-surface-variant">สื่อการเรียนรู้ประกอบคอมฯ</span>
       </div>
     </div>
     <div class="flex items-center gap-2">
-      <button onclick="alert('ระบบเสียงเปิดใช้งาน')" class="w-10 h-10 flex items-center justify-center rounded-lg text-on-surface-variant hover:text-primary active:scale-95 transition-all">
-        <span class="material-symbols-outlined">volume_up</span>
+      <button id="sfx-btn" onclick="toggleAudio()" aria-label="Audio Toggle" class="w-10 h-10 flex items-center justify-center rounded-lg text-on-surface-variant hover:text-primary active:scale-95 transition-all bg-surface-container-high">
+        <span id="sfx-icon" class="material-symbols-outlined text-[20px]">volume_off</span>
       </button>
-      <div class="h-8 px-3 flex items-center gap-1 rounded-full bg-surface-container-high text-xs">
-        <span class="text-primary font-bold">TH</span><span class="text-on-surface-variant">/EN</span>
-      </div>
+      <button onclick="toggleLanguage()" aria-label="Toggle Language" class="h-9 px-3 flex items-center justify-center gap-1 rounded-full bg-surface-container-high text-on-surface hover:text-primary active:scale-95 transition-all">
+        <span id="lang-indicator" class="font-bold text-primary text-xs">TH</span><span class="text-outline-variant">/</span><span class="text-on-surface-variant text-xs">EN</span>
+      </button>
     </div>
   </header>
 
@@ -91,54 +88,65 @@
         <div class="flex items-start justify-between mb-2">
           <div>
             <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary/15 text-primary text-xs font-semibold uppercase">
-              <span class="material-symbols-outlined text-[14px]">flag</span> เควสต์สะสมชิ้นส่วน
+              <span class="material-symbols-outlined text-[14px]">flag</span> <span id="t-quest">เควสต์สะสมชิ้นส่วน</span>
             </span>
-            <h2 id="progress-text" class="text-xl font-bold mt-1 text-on-surface">ปลดล็อกแล้ว 1 / 10 ชิ้น</h2>
+            <h2 id="progress-text" class="text-xl font-bold mt-1 text-on-surface">ปลดล็อกแล้ว 0 / 10 ชิ้น</h2>
           </div>
           <div class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-container-highest">
             <span class="material-symbols-outlined text-primary text-sm">bolt</span>
-            <span id="xp-text" class="text-xs text-primary font-bold">100 XP</span>
+            <span id="xp-text" class="text-xs text-primary font-bold">0 XP</span>
           </div>
         </div>
-        <p class="text-xs text-on-surface-variant mb-3">สแกนหาชิ้นส่วนอีก 9 ชิ้นเพื่อปลดล็อกโหมดประกอบเครื่องจริง</p>
-        <div class="grid grid-cols-10 gap-1 h-2 w-full mb-2">
-          <div class="rounded bg-primary shadow-[0_0_8px_#4be277]"></div>
-          <div class="rounded bg-surface-container-highest"></div>
-          <div class="rounded bg-surface-container-highest"></div>
-          <div class="rounded bg-surface-container-highest"></div>
-          <div class="rounded bg-surface-container-highest"></div>
-          <div class="rounded bg-surface-container-highest"></div>
-          <div class="rounded bg-surface-container-highest"></div>
-          <div class="rounded bg-surface-container-highest"></div>
-          <div class="rounded bg-surface-container-highest"></div>
-          <div class="rounded bg-surface-container-highest"></div>
+        <p id="t-quest-desc" class="text-xs text-on-surface-variant mb-3">สแกนหาชิ้นส่วนและตอบคำถามให้ถูกต้องเพื่อปลดล็อก</p>
+        <div id="progress-bar-container" class="grid grid-cols-10 gap-1 h-2 w-full mb-2">
+          <div class="rounded bg-surface-container-highest" id="p-0"></div>
+          <div class="rounded bg-surface-container-highest" id="p-1"></div>
+          <div class="rounded bg-surface-container-highest" id="p-2"></div>
+          <div class="rounded bg-surface-container-highest" id="p-3"></div>
+          <div class="rounded bg-surface-container-highest" id="p-4"></div>
+          <div class="rounded bg-surface-container-highest" id="p-5"></div>
+          <div class="rounded bg-surface-container-highest" id="p-6"></div>
+          <div class="rounded bg-surface-container-highest" id="p-7"></div>
+          <div class="rounded bg-surface-container-highest" id="p-8"></div>
+          <div class="rounded bg-surface-container-highest" id="p-9"></div>
         </div>
       </div>
     </section>
 
-    <!-- Quiz Section -->
-    <section class="mb-6">
+    <!-- Quiz Section (4 Options with XP Penalty Logic) -->
+    <section id="quiz-section" class="mb-6 hidden">
       <div class="rounded-2xl bg-surface-container/95 p-4 border border-primary/20">
         <div class="flex items-center justify-between mb-2">
           <div class="flex items-center gap-2">
             <span class="material-symbols-outlined text-tertiary">lightbulb</span>
-            <span class="font-bold text-sm">มินิควิซ: การ์ดจอ (GPU)</span>
+            <span id="t-quiz-title" class="font-bold text-sm">มินิควิซหลังสแกน: การ์ดจอ (GPU)</span>
           </div>
-          <span class="px-2 py-0.5 rounded-full bg-tertiary/20 text-tertiary text-xs font-bold">+50 XP</span>
+          <span id="current-xp-reward" class="px-2 py-0.5 rounded-full bg-tertiary/20 text-tertiary text-xs font-bold">รางวัล: 50 XP</span>
         </div>
-        <p class="text-sm mb-3">หน้าที่หลักของ GPU ในคอมพิวเตอร์คือข้อใด?</p>
+        <p id="t-quiz-question" class="text-sm mb-3">หน้าที่หลักของ GPU ในคอมพิวเตอร์คือข้อใด?</p>
         <div class="flex flex-col gap-2" id="quiz-options">
-          <button onclick="answerQuiz(true)" class="w-full text-left p-2.5 rounded-xl bg-surface-container-high flex items-center justify-between border border-primary/40">
+          <button onclick="answerQuiz(true)" class="w-full text-left p-2.5 rounded-xl bg-surface-container-high flex items-center justify-between border border-primary/40 transition-all hover:bg-surface-container-highest">
             <div class="flex items-center gap-2">
               <span class="w-6 h-6 rounded bg-primary text-on-primary text-xs font-bold flex items-center justify-center">A</span>
               <span class="text-sm text-primary font-medium">ประมวลผลกราฟิกและภาพ 3D</span>
             </div>
-            <span class="material-symbols-outlined text-primary text-sm">check_circle</span>
           </button>
-          <button onclick="answerQuiz(false)" class="w-full text-left p-2.5 rounded-xl bg-surface-container-low flex items-center justify-between">
+          <button onclick="answerQuiz(false)" class="w-full text-left p-2.5 rounded-xl bg-surface-container-low flex items-center justify-between transition-all hover:bg-surface-container-high">
             <div class="flex items-center gap-2">
               <span class="w-6 h-6 rounded bg-surface-container-highest text-xs font-bold flex items-center justify-center text-on-surface-variant">B</span>
-              <span class="text-sm text-on-surface-variant">จัดเก็บไฟล์ระบบถาวร</span>
+              <span class="text-sm text-on-surface-variant">จัดเก็บไฟล์ระบบถาวร (Storage)</span>
+            </div>
+          </button>
+          <button onclick="answerQuiz(false)" class="w-full text-left p-2.5 rounded-xl bg-surface-container-low flex items-center justify-between transition-all hover:bg-surface-container-high">
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded bg-surface-container-highest text-xs font-bold flex items-center justify-center text-on-surface-variant">C</span>
+              <span class="text-sm text-on-surface-variant">จ่ายกระแสไฟฟ้าให้เมนบอร์ด</span>
+            </div>
+          </button>
+          <button onclick="answerQuiz(false)" class="w-full text-left p-2.5 rounded-xl bg-surface-container-low flex items-center justify-between transition-all hover:bg-surface-container-high">
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded bg-surface-container-highest text-xs font-bold flex items-center justify-center text-on-surface-variant">D</span>
+              <span class="text-sm text-on-surface-variant">ประมวลผลคำสั่งหลักของระบบ (CPU)</span>
             </div>
           </button>
         </div>
@@ -149,34 +157,34 @@
     <div class="flex items-center justify-between mb-3">
       <div class="flex items-center gap-1.5">
         <span class="material-symbols-outlined text-primary">grid_view</span>
-        <h3 class="font-bold text-base">คลังชิ้นส่วนฮาร์ดแวร์</h3>
+        <h3 id="t-inventory" class="font-bold text-base">คลังชิ้นส่วนฮาร์ดแวร์</h3>
       </div>
       <span class="text-xs text-on-surface-variant">10 รายการ</span>
     </div>
 
-    <!-- Grid 10 Items -->
-    <div class="grid grid-cols-2 gap-3 mb-6">
+    <!-- Grid 10 Items (All Locked Initially) -->
+    <div class="grid grid-cols-2 gap-3 mb-6" id="inventory-grid">
       
-      <!-- 01: GPU (UNLOCKED) -->
-      <div class="relative flex flex-col justify-between rounded-xl bg-surface-container-high p-3 border border-primary/50 shadow-[0_0_15px_rgba(75,226,119,0.15)]">
+      <!-- 01: GPU (LOCKED INITIALLY) -->
+      <div id="item-card-0" class="flex flex-col justify-between rounded-xl bg-surface-container-low p-3 opacity-60">
         <div class="flex items-center justify-between mb-2">
-          <span class="px-2 py-0.5 rounded-full bg-primary/20 text-primary text-[10px] font-bold">ปลดล็อกแล้ว</span>
-          <span class="material-symbols-outlined text-primary text-sm">verified</span>
+          <span class="status-badge px-2 py-0.5 rounded-full bg-surface-container-highest text-xs text-on-surface-variant">ล็อกอยู่</span>
+          <span class="text-xs text-on-surface-variant">01</span>
         </div>
-        <div class="w-full h-20 rounded-lg bg-surface-container-lowest flex items-center justify-center overflow-hidden mb-2">
-          <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuD6Y2VMcwNYS8OBl3wYmlib59JEielXcSYIpNmsoQmW2Yz8BgHUECYf1OJK56EHFKnZgXn-uCjGPK7e0dHDILwdFYVIKUk3o3eWMh5W2obeLhEFtztlpW5Lp2LCJ9fHGLZXEH-vBEFLnhnJ3ZagVjGXJhxg0geC97B96TcPHMpBa5jWgYFwWoEYaKSqLdxzpbh-ox4KlS-ZHBE_3pDi_I6_fjsDl3kYR4AGm9o4aNZi" class="object-cover w-full h-full"/>
+        <div class="w-full h-20 rounded-lg bg-surface-container-lowest flex items-center justify-center mb-2">
+          <span class="material-symbols-outlined text-3xl text-on-surface-variant">videogame_asset</span>
         </div>
         <h4 class="font-bold text-sm">การ์ดจอ (GPU)</h4>
         <p class="text-xs text-on-surface-variant mb-2">RTX 4090</p>
-        <button onclick="startARScan()" class="w-full py-1.5 rounded-lg bg-primary text-on-primary font-bold text-xs flex items-center justify-center gap-1 active:scale-95 transition-all">
-          <span class="material-symbols-outlined text-sm">view_in_ar</span> ดูโมเดล 3D
+        <button onclick="startARScan()" class="w-full py-1.5 rounded-lg bg-surface-container-high text-xs text-primary flex items-center justify-center gap-1">
+          <span class="material-symbols-outlined text-sm">qr_code_scanner</span> สแกน AR เพื่อปลดล็อก
         </button>
       </div>
 
       <!-- 02: CPU (LOCKED) -->
-      <div class="flex flex-col justify-between rounded-xl bg-surface-container-low p-3 opacity-60">
+      <div class="flex flex-col justify-between rounded-xl bg-surface-container-low p-3 opacity-50">
         <div class="flex items-center justify-between mb-2">
-          <span class="px-2 py-0.5 rounded-full bg-surface-container-highest text-xs text-on-surface-variant">ล็อกอยู่</span>
+          <span class="status-badge px-2 py-0.5 rounded-full bg-surface-container-highest text-xs text-on-surface-variant">ล็อกอยู่</span>
           <span class="text-xs text-on-surface-variant">02</span>
         </div>
         <div class="w-full h-20 rounded-lg bg-surface-container-lowest flex items-center justify-center mb-2">
@@ -184,44 +192,20 @@
         </div>
         <h4 class="font-bold text-sm">ซีพียู (CPU)</h4>
         <p class="text-xs text-on-surface-variant mb-2">หน่วยประมวลผล</p>
-        <button onclick="startARScan()" class="w-full py-1.5 rounded-lg bg-surface-container-high text-xs text-primary flex items-center justify-center gap-1">
-          <span class="material-symbols-outlined text-sm">qr_code_scanner</span> สแกน AR
+        <button onclick="alert('กรุณาสแกนปลดล็อกตามลำดับชิ้นส่วน')" class="w-full py-1.5 rounded-lg bg-surface-container-high text-xs text-on-surface-variant flex items-center justify-center gap-1">
+          <span class="material-symbols-outlined text-sm">lock</span> ล็อกอยู่
         </button>
       </div>
 
-      <!-- 03-10 Items (Placeholders) -->
-      <div class="flex flex-col justify-between rounded-xl bg-surface-container-low p-3 opacity-50">
-        <span class="text-xs text-on-surface-variant mb-2">03 • เมนบอร์ด</span>
-        <div class="w-full h-16 rounded bg-surface-container-lowest flex items-center justify-center"><span class="material-symbols-outlined">grid_goldenratio</span></div>
-      </div>
-      <div class="flex flex-col justify-between rounded-xl bg-surface-container-low p-3 opacity-50">
-        <span class="text-xs text-on-surface-variant mb-2">04 • แรม (RAM)</span>
-        <div class="w-full h-16 rounded bg-surface-container-lowest flex items-center justify-center"><span class="material-symbols-outlined">memory</span></div>
-      </div>
-      <div class="flex flex-col justify-between rounded-xl bg-surface-container-low p-3 opacity-50">
-        <span class="text-xs text-on-surface-variant mb-2">05 • เอสเอสดี (SSD)</span>
-        <div class="w-full h-16 rounded bg-surface-container-lowest flex items-center justify-center"><span class="material-symbols-outlined">save</span></div>
-      </div>
-      <div class="flex flex-col justify-between rounded-xl bg-surface-container-low p-3 opacity-50">
-        <span class="text-xs text-on-surface-variant mb-2">06 • พาวเวอร์ซัพพลาย</span>
-        <div class="w-full h-16 rounded bg-surface-container-lowest flex items-center justify-center"><span class="material-symbols-outlined">power</span></div>
-      </div>
-      <div class="flex flex-col justify-between rounded-xl bg-surface-container-low p-3 opacity-50">
-        <span class="text-xs text-on-surface-variant mb-2">07 • ชุดน้ำระบายความร้อน</span>
-        <div class="w-full h-16 rounded bg-surface-container-lowest flex items-center justify-center"><span class="material-symbols-outlined">mode_fan</span></div>
-      </div>
-      <div class="flex flex-col justify-between rounded-xl bg-surface-container-low p-3 opacity-50">
-        <span class="text-xs text-on-surface-variant mb-2">08 • เคสคอมพิวเตอร์</span>
-        <div class="w-full h-16 rounded bg-surface-container-lowest flex items-center justify-center"><span class="material-symbols-outlined">computer</span></div>
-      </div>
-      <div class="flex flex-col justify-between rounded-xl bg-surface-container-low p-3 opacity-50">
-        <span class="text-xs text-on-surface-variant mb-2">09 • สายไฟ & พัดลม</span>
-        <div class="w-full h-16 rounded bg-surface-container-lowest flex items-center justify-center"><span class="material-symbols-outlined">cable</span></div>
-      </div>
-      <div class="flex flex-col justify-between rounded-xl bg-surface-container-low p-3 opacity-50">
-        <span class="text-xs text-on-surface-variant mb-2">10 • จอภาพ (Monitor)</span>
-        <div class="w-full h-16 rounded bg-surface-container-lowest flex items-center justify-center"><span class="material-symbols-outlined">tv</span></div>
-      </div>
+      <!-- 03-10 Items -->
+      <div class="flex flex-col justify-between rounded-xl bg-surface-container-low p-3 opacity-50"><span class="text-xs text-on-surface-variant mb-2">03 • เมนบอร์ด</span><div class="w-full h-16 rounded bg-surface-container-lowest flex items-center justify-center"><span class="material-symbols-outlined">grid_goldenratio</span></div></div>
+      <div class="flex flex-col justify-between rounded-xl bg-surface-container-low p-3 opacity-50"><span class="text-xs text-on-surface-variant mb-2">04 • แรม (RAM)</span><div class="w-full h-16 rounded bg-surface-container-lowest flex items-center justify-center"><span class="material-symbols-outlined">memory</span></div></div>
+      <div class="flex flex-col justify-between rounded-xl bg-surface-container-low p-3 opacity-50"><span class="text-xs text-on-surface-variant mb-2">05 • เอสเอสดี (SSD)</span><div class="w-full h-16 rounded bg-surface-container-lowest flex items-center justify-center"><span class="material-symbols-outlined">save</span></div></div>
+      <div class="flex flex-col justify-between rounded-xl bg-surface-container-low p-3 opacity-50"><span class="text-xs text-on-surface-variant mb-2">06 • พาวเวอร์ซัพพลาย</span><div class="w-full h-16 rounded bg-surface-container-lowest flex items-center justify-center"><span class="material-symbols-outlined">power</span></div></div>
+      <div class="flex flex-col justify-between rounded-xl bg-surface-container-low p-3 opacity-50"><span class="text-xs text-on-surface-variant mb-2">07 • ชุดน้ำระบายความร้อน</span><div class="w-full h-16 rounded bg-surface-container-lowest flex items-center justify-center"><span class="material-symbols-outlined">mode_fan</span></div></div>
+      <div class="flex flex-col justify-between rounded-xl bg-surface-container-low p-3 opacity-50"><span class="text-xs text-on-surface-variant mb-2">08 • เคสคอมพิวเตอร์</span><div class="w-full h-16 rounded bg-surface-container-lowest flex items-center justify-center"><span class="material-symbols-outlined">computer</span></div></div>
+      <div class="flex flex-col justify-between rounded-xl bg-surface-container-low p-3 opacity-50"><span class="text-xs text-on-surface-variant mb-2">09 • สายไฟ & พัดลม</span><div class="w-full h-16 rounded bg-surface-container-lowest flex items-center justify-center"><span class="material-symbols-outlined">cable</span></div></div>
+      <div class="flex flex-col justify-between rounded-xl bg-surface-container-low p-3 opacity-50"><span class="text-xs text-on-surface-variant mb-2">10 • จอภาพ (Monitor)</span><div class="w-full h-16 rounded bg-surface-container-lowest flex items-center justify-center"><span class="material-symbols-outlined">tv</span></div></div>
 
     </div>
   </main>
@@ -230,25 +214,25 @@
   <div class="fixed bottom-6 inset-x-0 z-40 px-4 flex justify-center max-w-md mx-auto">
     <button onclick="startARScan()" class="w-full h-14 rounded-full bg-primary text-on-primary font-bold text-base flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(75,226,119,0.5)] active:scale-95 transition-all">
       <span class="material-symbols-outlined text-xl">photo_camera</span>
-      <span>สแกนชิ้นส่วน AR ในห้อง</span>
+      <span id="t-scan-btn">สแกนชิ้นส่วน AR เพื่อปลดล็อก</span>
     </button>
   </div>
 
-  <!-- AR Camera Overlay Screen -->
+  <!-- AR Camera Fullscreen View -->
   <div id="ar-view">
-    <div class="absolute top-4 left-4 right-4 z-[110] flex justify-between items-center">
+    <div class="absolute top-4 left-4 right-4 z-[100000] flex justify-between items-center pointer-events-auto">
       <button onclick="stopARScan()" class="px-4 py-2 rounded-full bg-surface-container-high/90 text-on-surface font-bold text-xs flex items-center gap-1 shadow-lg border border-primary/30 backdrop-blur">
-        <span class="material-symbols-outlined text-sm">arrow_back</span> ย้อนกลับหน้าหลัก
+        <span class="material-symbols-outlined text-sm">arrow_back</span> <span id="t-back">ย้อนกลับหน้าหลัก</span>
       </button>
       <button onclick="resetARModel()" class="px-4 py-2 rounded-full bg-primary text-on-primary font-bold text-xs flex items-center gap-1 shadow-lg">
-        <span class="material-symbols-outlined text-sm">refresh</span> สแกนใหม่
+        <span class="material-symbols-outlined text-sm">refresh</span> <span id="t-rescan">สแกนใหม่</span>
       </button>
     </div>
 
-    <div id="ar-info-card" class="absolute bottom-6 left-4 right-4 z-[110] hidden p-4 rounded-2xl bg-surface-container/95 border border-primary/40 backdrop-blur-xl shadow-2xl">
-      <h4 id="ar-title" class="text-primary font-bold text-lg mb-1">NVIDIA GeForce RTX (GPU)</h4>
-      <p id="ar-desc" class="text-xs text-on-surface-variant mb-2">การ์ดจอทำหน้าที่ประมวลผลภาพและกราฟิก 3D</p>
-      <span class="text-[10px] text-on-surface-variant border-t border-surface-container-high pt-2 block">💡 ใช้นิ้วลากเพื่อหมุน | ถ่างนิ้วเพื่อซูมเข้า-ออก</span>
+    <div id="ar-info-card" class="absolute bottom-6 left-4 right-4 z-[100000] hidden p-4 rounded-2xl bg-surface-container/95 border border-primary/40 backdrop-blur-xl shadow-2xl pointer-events-auto">
+      <h4 id="ar-title" class="text-primary font-bold text-lg mb-1">สแกนเจอแล้ว! ทำควิซเพื่อปลดล็อก</h4>
+      <p id="ar-desc" class="text-xs text-on-surface-variant mb-2">กดปุ่มย้อนกลับเพื่อไปตอบคำถามและรับ XP สะสม</p>
+      <span id="t-hint" class="text-[10px] text-on-surface-variant border-t border-surface-container-high pt-2 block">💡 สแกนติดแล้ว ปลดล็อกเข้าสู่หน้าตอบคำถามได้เลย</span>
     </div>
 
     <!-- MindAR Scene -->
@@ -262,7 +246,161 @@
     </a-scene>
   </div>
 
-  <!-- Interactive JavaScript -->
+  <!-- Audio Background Player -->
+  <script>
+    let audioCtx = null;
+    let bgmGain = null;
+    let isPlayingAudio = false;
+
+    function toggleAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+
+      const icon = document.getElementById('sfx-icon');
+      if (!isPlayingAudio) {
+        playBGM();
+        isPlayingAudio = true;
+        icon.innerText = 'volume_up';
+      } else {
+        stopBGM();
+        isPlayingAudio = false;
+        icon.innerText = 'volume_off';
+      }
+    }
+
+    function playBGM() {
+      if (bgmGain) return;
+      bgmGain = audioCtx.createGain();
+      bgmGain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+      bgmGain.connect(audioCtx.destination);
+
+      const notes = [220, 246.94, 277.18, 329.63, 369.99];
+      let index = 0;
+      
+      window.bgmInterval = setInterval(() => {
+        if (!isPlayingAudio) return;
+        try {
+          const osc = audioCtx.createOscillator();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(notes[index], audioCtx.currentTime);
+          osc.connect(bgmGain);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 1.2);
+          index = (index + 1) % notes.length;
+        } catch(e) {}
+      }, 1500);
+    }
+
+    function stopBGM() {
+      if (window.bgmInterval) clearInterval(window.bgmInterval);
+      if (bgmGain) {
+        bgmGain.disconnect();
+        bgmGain = null;
+      }
+    }
+  </script>
+
+  <!-- Game Logic & XP Penalty System -->
+  <script>
+    let currentXP = 0;
+    let unlockedCount = 0;
+    let currentXPReward = 50; // XP เริ่มต้นที่ 50 ลดลงทีละ 5 ทุกครั้งที่ตอบผิด
+    let isScannedAndWaitingQuiz = false;
+
+    function answerQuiz(isCorrect) {
+      if (isCorrect) {
+        alert(`🎉 ตอบถูกต้อง! คุณปลดล็อกการ์ดจอสำเร็จ ได้รับ ${currentXPReward} XP`);
+        currentXP += currentXPReward;
+        unlockedCount = 1;
+        
+        // อัปเดตหน้าจอ UI เป็นสถานะปลดล็อก
+        updateInventoryUI();
+        
+        // ซ่อนควิซ
+        document.getElementById('quiz-section').style.display = 'none';
+        isScannedAndWaitingQuiz = false;
+      } else {
+        // หัก XP ทีละ 5 แต่ไม่ให้ต่ำกว่า 10
+        currentXPReward = Math.max(10, currentXPReward - 5);
+        document.getElementById('current-xp-reward').innerText = `รางวัล: ${currentXPReward} XP`;
+        alert(`❌ ยังไม่ถูกต้อง! โดนหัก XP เหลือรางวัลรอบนี้: ${currentXPReward} XP (ลองใหม่อีกครั้ง)`);
+      }
+    }
+
+    function updateInventoryUI() {
+      // อัปเดต Progress Bar
+      document.getElementById('progress-text').innerText = `ปลดล็อกแล้ว ${unlockedCount} / 10 ชิ้น`;
+      document.getElementById('xp-text').innerText = `${currentXP} XP`;
+      document.getElementById('p-0').className = "rounded bg-primary shadow-[0_0_8px_#4be277]";
+
+      // เปลี่ยนการ์ด GPU เป็นปลดล็อก
+      const gpuCard = document.getElementById('item-card-0');
+      gpuCard.className = "relative flex flex-col justify-between rounded-xl bg-surface-container-high p-3 border border-primary/50 shadow-[0_0_15px_rgba(75,226,119,0.15)]";
+      gpuCard.innerHTML = `
+        <div class="flex items-center justify-between mb-2">
+          <span class="px-2 py-0.5 rounded-full bg-primary/20 text-primary text-[10px] font-bold">ปลดล็อกแล้ว</span>
+          <span class="material-symbols-outlined text-primary text-sm">verified</span>
+        </div>
+        <div class="w-full h-20 rounded-lg bg-surface-container-lowest flex items-center justify-center overflow-hidden mb-2">
+          <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuD6Y2VMcwNYS8OBl3wYmlib59JEielXcSYIpNmsoQmW2Yz8BgHUECYf1OJK56EHFKnZgXn-uCjGPK7e0dHDILwdFYVIKUk3o3eWMh5W2obeLhEFtztlpW5Lp2LCJ9fHGLZXEH-vBEFLnhnJ3ZagVjGXJhxg0geC97B96TcPHMpBa5jWgYFwWoEYaKSqLdxzpbh-ox4KlS-ZHBE_3pDi_I6_fjsDl3kYR4AGm9o4aNZi" class="object-cover w-full h-full"/>
+        </div>
+        <h4 class="font-bold text-sm">การ์ดจอ (GPU)</h4>
+        <p class="text-xs text-on-surface-variant mb-2">RTX 4090</p>
+        <button onclick="startARScan()" class="w-full py-1.5 rounded-lg bg-primary text-on-primary font-bold text-xs flex items-center justify-center gap-1 active:scale-95 transition-all">
+          <span class="material-symbols-outlined text-sm">view_in_ar</span> ดูโมเดล 3D
+        </button>
+      `;
+    }
+  </script>
+
+  <!-- Multi-Language Support System -->
+  <script>
+    let currentLang = 'TH';
+
+    const langData = {
+      TH: {
+        subtitle: "สื่อการเรียนรู้ประกอบคอมฯ",
+        quest: "เควสต์สะสมชิ้นส่วน",
+        questDesc: "สแกนหาชิ้นส่วนและตอบคำถามให้ถูกต้องเพื่อปลดล็อก",
+        inventory: "คลังชิ้นส่วนฮาร์ดแวร์",
+        scanBtn: "สแกนชิ้นส่วน AR เพื่อปลดล็อก",
+        back: "ย้อนกลับหน้าหลัก",
+        rescan: "สแกนใหม่",
+        hint: "💡 สแกนติดแล้ว ปลดล็อกเข้าสู่หน้าตอบคำถามได้เลย"
+      },
+      EN: {
+        subtitle: "Interactive PC Building AR",
+        quest: "Component Quest",
+        questDesc: "Scan and answer quiz correctly to unlock items.",
+        inventory: "Hardware Inventory",
+        scanBtn: "Scan AR to Unlock",
+        back: "Back to Home",
+        rescan: "Scan Again",
+        hint: "💡 Target found! Go back to answer quiz."
+      }
+    };
+
+    function toggleLanguage() {
+      currentLang = currentLang === 'TH' ? 'EN' : 'TH';
+      document.getElementById('lang-indicator').innerText = currentLang;
+      
+      const d = langData[currentLang];
+      document.getElementById('t-subtitle').innerText = d.subtitle;
+      document.getElementById('t-quest').innerText = d.quest;
+      document.getElementById('t-quest-desc').innerText = d.questDesc;
+      document.getElementById('t-inventory').innerText = d.inventory;
+      document.getElementById('t-scan-btn').innerText = d.scanBtn;
+      document.getElementById('t-back').innerText = d.back;
+      document.getElementById('t-rescan').innerText = d.rescan;
+      document.getElementById('t-hint').innerText = d.hint;
+    }
+  </script>
+
+  <!-- AR & App Logic -->
   <script>
     const arView = document.getElementById('ar-view');
     const container = document.getElementById('ar-container');
@@ -276,7 +414,6 @@
     let initialPinchDistance = null;
     let currentScaleVal = 0.05;
 
-    // เปิดกล้อง AR
     function startARScan() {
       arView.style.display = 'block';
       const sceneEl = document.querySelector('a-scene');
@@ -287,19 +424,15 @@
       }
     }
 
-    // ปิดกล้อง AR ย้อนกลับหน้าหลัก
     function stopARScan() {
       arView.style.display = 'none';
       const sceneEl = document.querySelector('a-scene');
       sceneEl.systems['mindar-image-system'].stop();
-    }
 
-    // ตอบควิซ
-    function answerQuiz(isCorrect) {
-      if (isCorrect) {
-        alert('🎉 ตอบถูกต้อง! คุณได้รับ +50 XP');
-      } else {
-        alert('❌ ยังไม่ถูกต้อง ลองใหม่อีกครั้งนะครับ');
+      // ถ้าสแกนเจอแล้วกดกลับ จะเปิดโหมดคำถามควิซให้ทำทันที (ถ้ายังไม่ปลดล็อก)
+      if (isScannedAndWaitingQuiz && unlockedCount === 0) {
+        document.getElementById('quiz-section').style.display = 'block';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     }
 
@@ -326,6 +459,7 @@
       targetEntity.addEventListener("targetFound", () => {
         if (!isTracked) {
           isTracked = true;
+          isScannedAndWaitingQuiz = true;
           arInfoCard.style.display = 'block';
           freezeContainer.appendChild(modelWrapper);
           activeModelEntity = modelWrapper;
@@ -375,12 +509,4 @@
         const currentDistance = getPinchDistance(e.touches);
         const factor = currentDistance / initialPinchDistance;
         currentScaleVal = Math.min(Math.max(currentScaleVal * factor, 0.001), 1.0);
-        activeModelEntity.setAttribute('scale', `${currentScaleVal/0.05} ${currentScaleVal/0.05} ${currentScaleVal/0.05}`);
-        initialPinchDistance = currentDistance;
-      }
-    });
-
-    window.addEventListener('touchend', () => { isDragging = false; initialPinchDistance = null; });
-  </script>
-</body>
-</html>
+        activeModelEntity.setAttribute('scale', `${currentScaleVal/0.05}${currentScaleVal/0.0
