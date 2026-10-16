@@ -44,7 +44,7 @@
     }
     .neon-pulse { animation: pulse-neon 2s cubic-bezier(0.4,0,0.6,1) infinite; }
     
-    /* บังคับหน้าต่าง AR เต็มจอ 100% แบบไร้ขอบ */
+    /* 🔴 บังคับหน้าต่าง AR เต็มจอ 100% แบบไร้ขอบ */
     #ar-view {
       display: none;
       position: fixed;
@@ -56,7 +56,7 @@
       overflow: hidden;
     }
 
-    /* บังคับ A-Frame Scene และ Canvas ให้เต็มจอแท้จริง */
+    /* 🔴 บังคับ A-Frame Scene และ Canvas ให้เต็มจอแท้จริง */
     #ar-view a-scene {
       width: 100vw !important;
       height: 100vh !important;
@@ -73,7 +73,7 @@
       left: 0 !important;
     }
     
-    /* บังคับวิดีโอสตรีมกล้องให้คลุมเต็มจอแบบ Cover ป้องกันขอบดำ */
+    /* 🔴 บังคับวิดีโอสตรีมกล้องให้คลุมเต็มจอแบบ Cover ป้องกันขอบดำ */
     #ar-view video {
       object-fit: cover !important;
       width: 100vw !important;
@@ -418,7 +418,7 @@
     }
   </script>
 
-  <!-- AR & Camera Dynamic Cleanup Logic -->
+  <!-- AR & Camera Dynamic Cleanup Logic (Force Fullscreen Fixer Loop) -->
   <script>
     const arView = document.getElementById('ar-view');
     const sceneWrapper = document.getElementById('scene-wrapper');
@@ -428,6 +428,7 @@
     let container = null;
     let freezeContainer = null;
     let arInfoCard = null;
+    let videoForceInterval = null;
     
     let isDragging = false;
     let previousTouchPosition = { x: 0, y: 0 };
@@ -485,12 +486,34 @@
       if (typeof gpuData !== 'undefined') {
         loadARItem(gpuData);
       }
+
+      // 🔴 ตัวดักจับบังคับยืดวิดีโอของกล้องให้เต็มจอ 100vw/100vh แบบ Real-time ป้องกันขอบดำ
+      if (videoForceInterval) clearInterval(videoForceInterval);
+      videoForceInterval = setInterval(() => {
+        const arVideos = document.querySelectorAll('#ar-view video');
+        arVideos.forEach(v => {
+          v.style.setProperty('width', '100vw', 'important');
+          v.style.setProperty('height', '100vh', 'important');
+          v.style.setProperty('object-fit', 'cover', 'important');
+          v.style.setProperty('position', 'absolute', 'important');
+          v.style.setProperty('top', '0', 'important');
+          v.style.setProperty('left', '0', 'important');
+          v.style.setProperty('right', '0', 'important');
+          v.style.setProperty('bottom', '0', 'important');
+          v.style.setProperty('margin', 'auto', 'important');
+        });
+      }, 200);
     }
 
     function stopARScan() {
       arView.style.display = 'none';
 
-      // ทำลาย Scene และล้างแท็กวิดีโอทั้งหมดทิ้งทันที
+      if (videoForceInterval) {
+        clearInterval(videoForceInterval);
+        videoForceInterval = null;
+      }
+
+      // ทำลาย Scene และสตรีมกล้องทั้งหมดทิ้งอย่างเด็ดขาด
       sceneWrapper.innerHTML = '';
 
       const videos = document.querySelectorAll('video');
