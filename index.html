@@ -44,7 +44,6 @@
     }
     .neon-pulse { animation: pulse-neon 2s cubic-bezier(0.4,0,0.6,1) infinite; }
     
-    /* 🔴 บังคับหน้าต่าง AR เต็มจอ 100% แบบไร้ขอบ */
     #ar-view {
       display: none;
       position: fixed;
@@ -54,36 +53,6 @@
       z-index: 99999;
       background: #0f131c;
       overflow: hidden;
-    }
-
-    /* 🔴 บังคับ A-Frame Scene และ Canvas ให้เต็มจอแท้จริง */
-    #ar-view a-scene {
-      width: 100vw !important;
-      height: 100vh !important;
-      position: absolute !important;
-      top: 0 !important;
-      left: 0 !important;
-    }
-
-    #ar-view canvas.a-canvas {
-      width: 100vw !important;
-      height: 100vh !important;
-      position: absolute !important;
-      top: 0 !important;
-      left: 0 !important;
-    }
-    
-    /* 🔴 บังคับวิดีโอสตรีมกล้องให้คลุมเต็มจอแบบ Cover ป้องกันขอบดำ */
-    #ar-view video {
-      object-fit: cover !important;
-      width: 100vw !important;
-      height: 100vh !important;
-      position: absolute !important;
-      top: 0 !important;
-      left: 0 !important;
-      right: 0 !important;
-      bottom: 0 !important;
-      margin: auto !important;
     }
   </style>
 </head>
@@ -244,7 +213,6 @@
 
   <!-- AR Camera Fullscreen View -->
   <div id="ar-view">
-    <!-- Dynamic AR Scene Container -->
     <div id="scene-wrapper" class="w-full h-full relative"></div>
   </div>
 
@@ -418,7 +386,7 @@
     }
   </script>
 
-  <!-- AR & Camera Dynamic Cleanup Logic (Force Fullscreen Fixer Loop) -->
+  <!-- AR & Camera Dynamic Cleanup Logic -->
   <script>
     const arView = document.getElementById('ar-view');
     const sceneWrapper = document.getElementById('scene-wrapper');
@@ -436,7 +404,7 @@
     let currentScaleVal = 0.08;
 
     function startARScan() {
-      arView.style.display = 'block';
+      arView.style.setProperty('display', 'block', 'important');
       
       sceneWrapper.innerHTML = `
         <div class="absolute top-4 left-4 right-4 z-[100000] flex justify-between items-center pointer-events-auto">
@@ -487,7 +455,6 @@
         loadARItem(gpuData);
       }
 
-      // 🔴 ตัวดักจับบังคับยืดวิดีโอของกล้องให้เต็มจอ 100vw/100vh แบบ Real-time ป้องกันขอบดำ
       if (videoForceInterval) clearInterval(videoForceInterval);
       videoForceInterval = setInterval(() => {
         const arVideos = document.querySelectorAll('#ar-view video');
@@ -506,15 +473,19 @@
     }
 
     function stopARScan() {
-      arView.style.display = 'none';
+      arView.style.setProperty('display', 'none', 'important');
 
       if (videoForceInterval) {
         clearInterval(videoForceInterval);
         videoForceInterval = null;
       }
 
-      // ทำลาย Scene และสตรีมกล้องทั้งหมดทิ้งอย่างเด็ดขาด
+      // 🔴 เคลียร์เนื้อหาและทำลาย canvas ตกค้างทั้งหมดทิ้งทันที
       sceneWrapper.innerHTML = '';
+
+      // กวาดล้าง canvas และ video ที่แอบสร้างนอก wrapper ออกให้เกลี้ยง
+      const strayCanvases = document.querySelectorAll('canvas.a-canvas');
+      strayCanvases.forEach(c => c.remove());
 
       const videos = document.querySelectorAll('video');
       videos.forEach(video => {
