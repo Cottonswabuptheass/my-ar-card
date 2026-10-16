@@ -55,15 +55,7 @@
       overflow: hidden;
     }
 
-    a-scene {
-      width: 100vw !important;
-      height: 100vh !important;
-      position: absolute !important;
-      top: 0 !important;
-      left: 0 !important;
-    }
-
-    canvas.a-canvas {
+    a-scene, canvas.a-canvas {
       width: 100vw !important;
       height: 100vh !important;
       position: absolute !important;
@@ -151,10 +143,10 @@
             <span class="material-symbols-outlined text-primary text-2xl">quiz</span>
             <div>
               <h4 class="font-bold text-sm text-on-surface">ทำแบบทดสอบเพื่อรับ XP</h4>
-              <p class="text-xs text-on-surface-variant">คลิกเพื่อเปิดข้อสอบการ์ดจอ (GPU)</p>
+              <p class="text-xs text-on-surface-variant">คลิกเพื่อดูแบบทดสอบการ์ดจอ (GPU)</p>
             </div>
           </div>
-          <span class="px-3 py-1 rounded-full bg-primary/20 text-primary text-xs font-bold">เริ่มทำข้อสอบ</span>
+          <span id="quiz-btn-status" class="px-3 py-1 rounded-full bg-primary/20 text-primary text-xs font-bold">เริ่มทำข้อสอบ</span>
         </div>
       </div>
     </section>
@@ -207,7 +199,7 @@
     </button>
   </div>
 
-  <!-- Popup Modal ทำแบบทดสอบ -->
+  <!-- Popup Modal ทำแบบทดสอบ (โหมดดูเฉลย View-Only เมื่อตอบแล้ว) -->
   <div id="quiz-modal" class="fixed inset-0 z-[999999] hidden flex items-center justify-center bg-black/80 backdrop-blur-md px-4">
     <div class="w-full max-w-sm rounded-3xl bg-surface-container p-6 border border-primary/40 shadow-2xl relative">
       <button onclick="closeQuizModal()" class="absolute top-4 right-4 text-on-surface-variant hover:text-primary">
@@ -218,21 +210,21 @@
         <h3 class="font-bold text-base text-primary">แบบทดสอบการ์ดจอ (GPU)</h3>
       </div>
       <div class="flex items-center justify-between mb-3">
-        <span class="text-xs text-on-surface-variant">เลือกคำตอบที่ถูกต้องที่สุด</span>
+        <span id="quiz-status-text" class="text-xs text-on-surface-variant">เลือกคำตอบที่ถูกต้องที่สุด</span>
         <span id="current-xp-reward" class="px-2.5 py-0.5 rounded-full bg-tertiary/20 text-tertiary text-xs font-bold">รางวัล: 100 XP</span>
       </div>
       <p class="text-sm mb-4 text-on-surface font-medium">หน้าที่หลักของ GPU ในคอมพิวเตอร์คือข้อใด?</p>
-      <div class="flex flex-col gap-2">
-        <button onclick="answerQuiz(true)" class="w-full text-left p-3 rounded-xl bg-surface-container-low text-xs flex items-center justify-between text-on-surface-variant cursor-pointer hover:bg-surface-container-high hover:text-on-surface transition-all border border-transparent">
+      <div id="quiz-options-container" class="flex flex-col gap-2">
+        <button id="opt-0" onclick="answerQuiz(true, 0)" class="quiz-option-btn w-full text-left p-3 rounded-xl bg-surface-container-low text-xs flex items-center justify-between text-on-surface-variant cursor-pointer hover:bg-surface-container-high hover:text-on-surface transition-all border border-transparent">
           <span>A. ประมวลผลกราฟิกและภาพ 3D</span>
         </button>
-        <button onclick="answerQuiz(false)" class="w-full text-left p-3 rounded-xl bg-surface-container-low text-xs flex items-center justify-between text-on-surface-variant cursor-pointer hover:bg-surface-container-high hover:text-on-surface transition-all border border-transparent">
+        <button id="opt-1" onclick="answerQuiz(false, 1)" class="quiz-option-btn w-full text-left p-3 rounded-xl bg-surface-container-low text-xs flex items-center justify-between text-on-surface-variant cursor-pointer hover:bg-surface-container-high hover:text-on-surface transition-all border border-transparent">
           <span>B. จัดเก็บไฟล์ระบบถาวร (Storage)</span>
         </button>
-        <button onclick="answerQuiz(false)" class="w-full text-left p-3 rounded-xl bg-surface-container-low text-xs flex items-center justify-between text-on-surface-variant cursor-pointer hover:bg-surface-container-high hover:text-on-surface transition-all border border-transparent">
+        <button id="opt-2" onclick="answerQuiz(false, 2)" class="quiz-option-btn w-full text-left p-3 rounded-xl bg-surface-container-low text-xs flex items-center justify-between text-on-surface-variant cursor-pointer hover:bg-surface-container-high hover:text-on-surface transition-all border border-transparent">
           <span>C. จ่ายกระแสไฟฟ้าให้เมนบอร์ด</span>
         </button>
-        <button onclick="answerQuiz(false)" class="w-full text-left p-3 rounded-xl bg-surface-container-low text-xs flex items-center justify-between text-on-surface-variant cursor-pointer hover:bg-surface-container-high hover:text-on-surface transition-all border border-transparent">
+        <button id="opt-3" onclick="answerQuiz(false, 3)" class="quiz-option-btn w-full text-left p-3 rounded-xl bg-surface-container-low text-xs flex items-center justify-between text-on-surface-variant cursor-pointer hover:bg-surface-container-high hover:text-on-surface transition-all border border-transparent">
           <span>D. ประมวลผลคำสั่งหลักของระบบ (CPU)</span>
         </button>
       </div>
@@ -247,7 +239,7 @@
       </button>
 
       <button onclick="openQuizModal()" class="px-3 py-2 rounded-full bg-primary text-on-primary font-bold text-xs flex items-center gap-1 shadow-lg cursor-pointer neon-pulse">
-        <span class="material-symbols-outlined text-sm">quiz</span> ทำแบบทดสอบ (100 XP)
+        <span class="material-symbols-outlined text-sm">quiz</span> ทำแบบทดสอบ
       </button>
 
       <button onclick="resetARModel()" class="px-3 py-2 rounded-full bg-surface-container-high/90 text-on-surface font-bold text-xs flex items-center gap-1 shadow-lg border border-primary/30 backdrop-blur cursor-pointer">
@@ -339,12 +331,12 @@
     }
   </script>
 
-  <!-- Game Logic -->
+  <!-- Game Logic & View-Only Quiz System -->
   <script>
     let currentXP = parseInt(localStorage.getItem('ar_xp')) || 0;
     let unlockedCount = parseInt(localStorage.getItem('ar_unlocked')) || 0;
     let currentXPReward = parseInt(localStorage.getItem('ar_reward')) || 100;
-    let hasUnlockedGPU = unlockedCount > 0;
+    let hasUnlockedGPU = localStorage.getItem('ar_gpu_solved') === 'true';
 
     window.addEventListener('DOMContentLoaded', () => {
       if (hasUnlockedGPU) {
@@ -357,22 +349,30 @@
 
     function openQuizModal() {
       document.getElementById('quiz-modal').style.display = 'flex';
+      if (hasUnlockedGPU) {
+        applyViewOnlyQuizMode();
+      }
     }
 
     function closeQuizModal() {
       document.getElementById('quiz-modal').style.display = 'none';
     }
 
-    function answerQuiz(isCorrect) {
+    function answerQuiz(isCorrect, optIndex) {
+      if (hasUnlockedGPU) return; // ป้องกันการกดซ้ำ
+
+      const btnElement = document.getElementById(`opt-${optIndex}`);
+
       if (isCorrect) {
-        alert(`🎉 ตอบถูกต้อง! ปลดล็อกการ์ดจอสำเร็จ ได้รับ ${currentXPReward} XP`);
+        hasUnlockedGPU = true;
         currentXP += currentXPReward;
         unlockedCount = 1;
-        hasUnlockedGPU = true;
 
         localStorage.setItem('ar_xp', currentXP);
         localStorage.setItem('ar_unlocked', unlockedCount);
+        localStorage.setItem('ar_gpu_solved', 'true');
 
+        alert(`🎉 ตอบถูกต้อง! ปลดล็อกการ์ดจอสำเร็จ ได้รับ ${currentXPReward} XP`);
         closeQuizModal();
         stopARScan();
         applyUnlockedUI();
@@ -383,12 +383,39 @@
         currentXPReward = Math.max(20, currentXPReward - 20);
         localStorage.setItem('ar_reward', currentXPReward);
         document.getElementById('current-xp-reward').innerText = `รางวัล: ${currentXPReward} XP`;
+        
+        btnElement.disabled = true;
+        btnElement.classList.add('opacity-40', 'cursor-not-allowed');
+        btnElement.style.background = '#2a1a1a';
+        
         alert(`❌ ยังไม่ถูกต้อง! โดนหัก 20 XP เหลือรางวัลรอบนี้: ${currentXPReward} XP (ลองเลือกข้ออื่นใหม่)`);
       }
     }
 
+    // เปลี่ยนเป็นโหมดดูเฉลยอย่างเดียว (กดไม่ได้ แต่แสดงผลปกติ)
+    function applyViewOnlyQuizMode() {
+      document.getElementById('quiz-status-text').innerText = "✅ แบบทดสอบนี้ทำเสร็จแล้ว (โหมดดูเฉลย)";
+      document.getElementById('current-xp-reward').innerText = "ปลดล็อกแล้ว";
+      
+      const buttons = document.querySelectorAll('.quiz-option-btn');
+      buttons.forEach((btn, idx) => {
+        btn.style.pointerEvents = 'none'; // ปิดการคลิกทุกปุ่ม
+        if (idx === 0) {
+          // ไฮไลต์ข้อที่ถูก (ข้อ A) ให้เป็นสีเขียวเด่นชัด
+          btn.style.background = 'rgba(75, 226, 119, 0.15)';
+          btn.style.borderColor = '#4be277';
+          btn.style.color = '#4be277';
+        } else {
+          btn.style.opacity = '0.5';
+        }
+      });
+    }
+
     function applyUnlockedUI() {
       document.getElementById('p-0').className = "rounded bg-primary shadow-[0_0_8px_#4be277]";
+      document.getElementById('quiz-btn-status').innerText = "ดูเฉลยข้อสอบ";
+      document.getElementById('quiz-btn-status').className = "px-3 py-1 rounded-full bg-primary/20 text-primary text-xs font-bold";
+
       const gpuCard = document.getElementById('item-card-0');
       gpuCard.className = "relative flex flex-col justify-between rounded-xl bg-surface-container-high p-3 border border-primary/50 shadow-[0_0_15px_rgba(75,226,119,0.15)]";
       gpuCard.innerHTML = `
@@ -411,18 +438,13 @@
   <!-- Multi-Language Support System -->
   <script>
     let currentLang = 'TH';
-    let translations = {
-      TH: { title: "AR PC BUILDER", subtitle: "สื่อการเรียนรู้ประกอบคอมฯ", quest: "เควสต์สะสมชิ้นส่วน", progress: "ปลดล็อกแล้ว", scanHint: "สแกนชิ้นส่วนและทำแบบทดสอบเพื่อปลดล็อก", quizTitle: "ทำแบบทดสอบเพื่อรับ XP", quizSub: "คลิกเพื่อเปิดข้อสอบการ์ดจอ (GPU)", startQuiz: "ทำข้อสอบ", inventory: "คลังชิ้นส่วนฮาร์ดแวร์", itemsCount: "10 รายการ", scanBtn: "สแกนชิ้นส่วน AR เต็มจอ" },
-      EN: { title: "AR PC BUILDER", subtitle: "PC Assembly Learning Tool", quest: "Part Quest", progress: "Unlocked", scanHint: "Scan parts and take quiz to unlock", quizTitle: "Take Quiz for XP", quizSub: "Click to open GPU quiz", startQuiz: "Start Quiz", inventory: "Hardware Inventory", itemsCount: "10 items", scanBtn: "Scan AR Fullscreen" }
-    };
-
     function toggleLanguage() {
       currentLang = currentLang === 'TH' ? 'EN' : 'TH';
       document.getElementById('lang-indicator').innerText = currentLang;
     }
   </script>
 
-  <!-- AR & App Logic (แก้บัคปุ่มย้อนกลับให้หยุดสตรีมกล้องและล้างค่าหมดจด) -->
+  <!-- AR & App Logic -->
   <script>
     const arView = document.getElementById('ar-view');
     const container = document.getElementById('ar-container');
@@ -460,7 +482,6 @@
         } catch(e) {}
       }
 
-      // หยุดการทำงานของกล้องวิดีโอทั้งหมดเพื่อไม่ให้ค้างคาบนหน้าจอหลัก
       const videos = document.querySelectorAll('video');
       videos.forEach(video => {
         if (video.srcObject) {
