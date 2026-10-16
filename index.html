@@ -216,60 +216,28 @@
     <div id="scene-wrapper" class="w-full h-full relative"></div>
   </div>
 
-  <!-- Audio Background Player -->
+  <!-- แท็ก Audio สำหรับเล่นไฟล์ MP3 -->
+  <audio id="bgm-game" src="./bgm.mp3" loop preload="auto"></audio>
+
+  <!-- Audio Background Player (ควบคุมเพลง MP3) -->
   <script>
-    let audioCtx = null;
-    let bgmGain = null;
     let isPlayingAudio = false;
 
     function toggleAudio() {
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
-      }
-
+      const bgmAudio = document.getElementById('bgm-game');
       const icon = document.getElementById('sfx-icon');
+      
       if (!isPlayingAudio) {
-        playBGM();
-        isPlayingAudio = true;
-        icon.innerText = 'volume_up';
+        bgmAudio.play().then(() => {
+          isPlayingAudio = true;
+          icon.innerText = 'volume_up';
+        }).catch(e => {
+          console.log("Autoplay blocked or error:", e);
+        });
       } else {
-        stopBGM();
+        bgmAudio.pause();
         isPlayingAudio = false;
         icon.innerText = 'volume_off';
-      }
-    }
-
-    function playBGM() {
-      if (bgmGain) return;
-      bgmGain = audioCtx.createGain();
-      bgmGain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-      bgmGain.connect(audioCtx.destination);
-
-      const notes = [220, 246.94, 277.18, 329.63, 369.99];
-      let index = 0;
-      
-      window.bgmInterval = setInterval(() => {
-        if (!isPlayingAudio) return;
-        try {
-          const osc = audioCtx.createOscillator();
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(notes[index], audioCtx.currentTime);
-          osc.connect(bgmGain);
-          osc.start();
-          osc.stop(audioCtx.currentTime + 1.2);
-          index = (index + 1) % notes.length;
-        } catch(e) {}
-      }, 1500);
-    }
-
-    function stopBGM() {
-      if (window.bgmInterval) clearInterval(window.bgmInterval);
-      if (bgmGain) {
-        bgmGain.disconnect();
-        bgmGain = null;
       }
     }
   </script>
@@ -377,201 +345,4 @@
     }
   </script>
 
-  <!-- Multi-Language Support System -->
-  <script>
-    let currentLang = 'TH';
-    function toggleLanguage() {
-      currentLang = currentLang === 'TH' ? 'EN' : 'TH';
-      document.getElementById('lang-indicator').innerText = currentLang;
-    }
-  </script>
-
-  <!-- AR & Camera Dynamic Cleanup Logic (กวาดล้างเกลี้ยง 100%) -->
-  <script>
-    const arView = document.getElementById('ar-view');
-    const sceneWrapper = document.getElementById('scene-wrapper');
-    
-    let isTracked = false;
-    let activeModelEntity = null;
-    let container = null;
-    let freezeContainer = null;
-    let arInfoCard = null;
-    let videoForceInterval = null;
-    
-    let isDragging = false;
-    let previousTouchPosition = { x: 0, y: 0 };
-    let initialPinchDistance = null;
-    let currentScaleVal = 0.08;
-
-    function startARScan() {
-      arView.style.setProperty('display', 'block', 'important');
-      
-      sceneWrapper.innerHTML = `
-        <div class="absolute top-4 left-4 right-4 z-[100000] flex justify-between items-center pointer-events-auto">
-          <button onclick="stopARScan()" class="px-3 py-2 rounded-full bg-surface-container-high/90 text-on-surface font-bold text-xs flex items-center gap-1 shadow-lg border border-primary/30 backdrop-blur cursor-pointer">
-            <span class="material-symbols-outlined text-sm">arrow_back</span> ย้อนกลับ
-          </button>
-
-          <button onclick="openQuizModal()" class="px-3 py-2 rounded-full bg-primary text-on-primary font-bold text-xs flex items-center gap-1 shadow-lg cursor-pointer neon-pulse">
-            <span class="material-symbols-outlined text-sm">quiz</span> ทำแบบทดสอบ
-          </button>
-
-          <button onclick="resetARModel()" class="px-3 py-2 rounded-full bg-surface-container-high/90 text-on-surface font-bold text-xs flex items-center gap-1 shadow-lg border border-primary/30 backdrop-blur cursor-pointer">
-            <span class="material-symbols-outlined text-sm">refresh</span> รีเซ็ต
-          </button>
-        </div>
-
-        <div id="ar-info-card" class="absolute bottom-6 left-4 right-4 z-[100000] hidden p-4 rounded-2xl bg-surface-container/95 border border-primary/40 backdrop-blur-xl shadow-2xl pointer-events-auto">
-          <div class="flex items-center justify-between mb-1">
-            <h4 class="text-primary font-bold text-base">การ์ดจอ (GPU - RTX 4090)</h4>
-            <span class="px-2 py-0.5 rounded-full bg-primary/20 text-primary text-[10px] font-bold">AR Active</span>
-          </div>
-          <p class="text-xs text-on-surface-variant mb-2 leading-relaxed">
-            ทำหน้าที่ประมวลผลภาพกราฟิก 3D และเรนเดอร์ภาพออกจอคอมพิวเตอร์ มีพัดลมระบายความร้อนประสิทธิภาพสูง
-          </p>
-          <div class="border-t border-surface-container-high pt-2 flex items-center justify-between text-[10px] text-primary">
-            <span>🎉 สแกนเจอโมเดล 3D สำเร็จ!</span>
-            <span>💡 ใช้นิ้วลากเพื่อหมุน | ถ่างเพื่อซูม</span>
-          </div>
-        </div>
-
-        <a-scene id="ar-scene-el" mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; uiLoading: no; uiError: no;" embedded color-space="sRGB" renderer="colorManagement: true; precision: medium; alpha: true;" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
-          <a-ambient-light color="#ffffff" intensity="2.5"></a-ambient-light>
-          <a-directional-light position="1 2 3" intensity="1.5"></a-directional-light>
-          <a-camera id="main-camera" position="0 0 0" look-controls="enabled: false">
-            <a-entity id="camera-freeze-container" position="0 0 -1.6" rotation="0 0 0"></a-entity>
-          </a-camera>
-          <a-entity id="ar-container"></a-entity>
-        </a-scene>
-      `;
-
-      container = document.getElementById('ar-container');
-      freezeContainer = document.getElementById('camera-freeze-container');
-      arInfoCard = document.getElementById('ar-info-card');
-      isTracked = false;
-      activeModelEntity = null;
-
-      if (typeof gpuData !== 'undefined') {
-        loadARItem(gpuData);
-      }
-
-      if (videoForceInterval) clearInterval(videoForceInterval);
-      videoForceInterval = setInterval(() => {
-        const arVideos = document.querySelectorAll('#ar-view video');
-        arVideos.forEach(v => {
-          v.style.setProperty('width', '100vw', 'important');
-          v.style.setProperty('height', '100vh', 'important');
-          v.style.setProperty('object-fit', 'cover', 'important');
-          v.style.setProperty('position', 'absolute', 'important');
-          v.style.setProperty('top', '0', 'important');
-          v.style.setProperty('left', '0', 'important');
-          v.style.setProperty('right', '0', 'important');
-          v.style.setProperty('bottom', '0', 'important');
-          v.style.setProperty('margin', 'auto', 'important');
-        });
-      }, 200);
-    }
-
-    function stopARScan() {
-      arView.style.setProperty('display', 'none', 'important');
-
-      if (videoForceInterval) {
-        clearInterval(videoForceInterval);
-        videoForceInterval = null;
-      }
-
-      // 🔴 กวาดล้างทำลาย Scene ทิ้ง
-      sceneWrapper.innerHTML = '';
-
-      // 🔴 โค้ดกำจัดคราบแถบขาว/เทา: กวาดล้าง canvas, video และ UI overlay ทั้งหมดที่แอบสร้างนอก ar-view ทิ้งให้เกลี้ยง
-      const strayElements = document.querySelectorAll('canvas, video, .mindar-ui-overlay, .a-enter-vr');
-      strayElements.forEach(el => {
-        // ป้องกันไม่ให้เผลอลบ element หลักของหน้าเว็บ
-        if (!el.closest('#inventory-grid-container') && !el.closest('header') && !el.closest('main')) {
-          el.remove();
-        }
-      });
-
-      // สั่งปิดกล้องสตรีมทั้งหมดแบบเด็ดขาด
-      navigator.mediaDevices?.getUserMedia({ video: true }).then(stream => {
-        stream.getTracks().forEach(track => track.stop());
-      }).catch(e => {});
-    }
-
-    function loadARItem(itemData) {
-      if (!container) return;
-      const targetEntity = document.createElement('a-entity');
-      targetEntity.setAttribute('mindar-image-target', `targetIndex: ${itemData.targetIndex}`);
-
-      const modelWrapper = document.createElement('a-entity');
-      const modelEntity = document.createElement('a-entity');
-      modelEntity.setAttribute('gltf-model', itemData.model);
-      modelEntity.setAttribute('scale', '0.05 0.05 0.05');
-      modelEntity.setAttribute('position', '0 0 0');
-
-      modelWrapper.appendChild(modelEntity);
-      targetEntity.appendChild(modelWrapper);
-
-      targetEntity.addEventListener("targetFound", () => {
-        if (!isTracked && arInfoCard) {
-          isTracked = true;
-          arInfoCard.style.display = 'block';
-          if (freezeContainer) freezeContainer.appendChild(modelWrapper);
-          activeModelEntity = modelWrapper;
-        }
-      });
-
-      container.appendChild(targetEntity);
-    }
-
-    function resetARModel() {
-      if (activeModelEntity) { activeModelEntity.remove(); activeModelEntity = null; }
-      isTracked = false;
-      currentScaleVal = 0.08;
-      if (arInfoCard) arInfoCard.style.display = 'none';
-      if (container) container.innerHTML = '';
-      if (typeof gpuData !== 'undefined') { loadARItem(gpuData); }
-    }
-
-    function getPinchDistance(touches) {
-      return Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
-    }
-
-    window.addEventListener('touchstart', (e) => {
-      if (!isTracked) return;
-      if (e.touches.length === 1) {
-        isDragging = true;
-        previousTouchPosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-      } else if (e.touches.length === 2) {
-        isDragging = false;
-        initialPinchDistance = getPinchDistance(e.touches);
-      }
-    });
-
-    window.addEventListener('touchmove', (e) => {
-      if (!isTracked || !activeModelEntity) return;
-      if (isDragging && e.touches.length === 1) {
-        const deltaX = e.touches.length > 0 ? e.touches[0].clientX - previousTouchPosition.x : 0;
-        const deltaY = e.touches.length > 0 ? e.touches[0].clientY - previousTouchPosition.y : 0;
-        const currentRot = activeModelEntity.getAttribute('rotation');
-        activeModelEntity.setAttribute('rotation', {
-          x: currentRot.x + deltaY * 0.4,
-          y: currentRot.y + deltaX * 0.4,
-          z: currentRot.z
-        });
-        if(e.touches.length > 0) {
-          previousTouchPosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-        }
-      } else if (e.touches.length === 2 && initialPinchDistance) {
-        const currentDistance = getPinchDistance(e.touches);
-        const factor = currentDistance / initialPinchDistance;
-        currentScaleVal = Math.min(Math.max(currentScaleVal * factor, 0.001), 1.0);
-        activeModelEntity.setAttribute('scale', `${currentScaleVal/0.05} ${currentScaleVal/0.05} ${currentScaleVal/0.05}`);
-        initialPinchDistance = currentDistance;
-      }
-    });
-
-    window.addEventListener('touchend', () => { isDragging = false; initialPinchDistance = null; });
-  </script>
-</body>
-</html>
+  <!-- Multi-Language Support System --
