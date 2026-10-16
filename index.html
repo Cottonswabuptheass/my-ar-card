@@ -44,7 +44,6 @@
     }
     .neon-pulse { animation: pulse-neon 2s cubic-bezier(0.4,0,0.6,1) infinite; }
     
-    /* 🔴 บังคับหน้าจอ AR ให้เต็มจอ 100% แบบไร้ขอบ */
     #ar-view {
       display: none;
       position: fixed;
@@ -56,7 +55,6 @@
       overflow: hidden;
     }
 
-    /* บังคับ A-Frame Scene และ Canvas ให้เต็มจอและอยู่กึ่งกลางเสมอ */
     a-scene {
       width: 100vw !important;
       height: 100vh !important;
@@ -73,7 +71,6 @@
       left: 0 !important;
     }
     
-    /* 🔴 บังคับวิดีโอจากกล้องให้ขยายเต็มจอแบบ Cover ป้องกันขอบดำด้านขวา */
     #ar-view video {
       object-fit: cover !important;
       width: 100vw !important;
@@ -414,13 +411,18 @@
   <!-- Multi-Language Support System -->
   <script>
     let currentLang = 'TH';
+    let translations = {
+      TH: { title: "AR PC BUILDER", subtitle: "สื่อการเรียนรู้ประกอบคอมฯ", quest: "เควสต์สะสมชิ้นส่วน", progress: "ปลดล็อกแล้ว", scanHint: "สแกนชิ้นส่วนและทำแบบทดสอบเพื่อปลดล็อก", quizTitle: "ทำแบบทดสอบเพื่อรับ XP", quizSub: "คลิกเพื่อเปิดข้อสอบการ์ดจอ (GPU)", startQuiz: "ทำข้อสอบ", inventory: "คลังชิ้นส่วนฮาร์ดแวร์", itemsCount: "10 รายการ", scanBtn: "สแกนชิ้นส่วน AR เต็มจอ" },
+      EN: { title: "AR PC BUILDER", subtitle: "PC Assembly Learning Tool", quest: "Part Quest", progress: "Unlocked", scanHint: "Scan parts and take quiz to unlock", quizTitle: "Take Quiz for XP", quizSub: "Click to open GPU quiz", startQuiz: "Start Quiz", inventory: "Hardware Inventory", itemsCount: "10 items", scanBtn: "Scan AR Fullscreen" }
+    };
+
     function toggleLanguage() {
       currentLang = currentLang === 'TH' ? 'EN' : 'TH';
       document.getElementById('lang-indicator').innerText = currentLang;
     }
   </script>
 
-  <!-- AR & App Logic -->
+  <!-- AR & App Logic (แก้บัคปุ่มย้อนกลับให้หยุดสตรีมกล้องและล้างค่าหมดจด) -->
   <script>
     const arView = document.getElementById('ar-view');
     const container = document.getElementById('ar-container');
@@ -450,10 +452,24 @@
     function stopARScan() {
       arView.style.display = 'none';
       arInfoCard.style.display = 'none';
+      
       const sceneEl = document.getElementById('ar-scene-el');
       if (sceneEl && sceneEl.systems && sceneEl.systems['mindar-image-system']) {
-        sceneEl.systems['mindar-image-system'].stop();
+        try {
+          sceneEl.systems['mindar-image-system'].stop();
+        } catch(e) {}
       }
+
+      // หยุดการทำงานของกล้องวิดีโอทั้งหมดเพื่อไม่ให้ค้างคาบนหน้าจอหลัก
+      const videos = document.querySelectorAll('video');
+      videos.forEach(video => {
+        if (video.srcObject) {
+          const tracks = video.srcObject.getTracks();
+          tracks.forEach(track => track.stop());
+          video.srcObject = null;
+        }
+        video.remove();
+      });
     }
 
     function loadARItem(itemData) {
@@ -509,15 +525,17 @@
     window.addEventListener('touchmove', (e) => {
       if (!isTracked || !activeModelEntity) return;
       if (isDragging && e.touches.length === 1) {
-        const deltaX = e.touches[0].clientX - previousTouchPosition.x;
-        const deltaY = e.touches[0].clientY - previousTouchPosition.y;
+        const deltaX = e.touches.length > 0 ? e.touches[0].clientX - previousTouchPosition.x : 0;
+        const deltaY = e.touches.length > 0 ? e.touches[0].clientY - previousTouchPosition.y : 0;
         const currentRot = activeModelEntity.getAttribute('rotation');
         activeModelEntity.setAttribute('rotation', {
           x: currentRot.x + deltaY * 0.4,
           y: currentRot.y + deltaX * 0.4,
           z: currentRot.z
         });
-        previousTouchPosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        if(e.touches.length > 0) {
+          previousTouchPosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        }
       } else if (e.touches.length === 2 && initialPinchDistance) {
         const currentDistance = getPinchDistance(e.touches);
         const factor = currentDistance / initialPinchDistance;
