@@ -44,7 +44,6 @@
     }
     .neon-pulse { animation: pulse-neon 2s cubic-bezier(0.4,0,0.6,1) infinite; }
     
-    /* บังคับให้หน้าจอ AR และ Canvas ขยายเต็มจอ 100% ไร้ขอบดำ */
     #ar-view {
       display: none;
       position: fixed;
@@ -53,24 +52,8 @@
       background: #0f131c;
       overflow: hidden;
     }
-    
-    a-scene {
-      width: 100vw !important;
-      height: 100vh !important;
-      position: absolute !important;
-      top: 0 !important;
-      left: 0 !important;
-    }
-
-    /* บังคับวิดีโอจากกล้องมือถือให้ยืดเต็มจอแบบไม่มีช่องว่าง */
-    video {
-      object-fit: cover !important;
-      width: 100vw !important;
-      height: 100vh !important;
-      position: absolute !important;
-      top: 0 !important;
-      left: 0 !important;
-    }
+    a-scene { width: 100vw !important; height: 100vh !important; position: absolute !important; top: 0; left: 0; }
+    video { object-fit: cover !important; width: 100vw !important; height: 100vh !important; position: absolute !important; top: 0; left: 0; }
   </style>
 </head>
 
@@ -132,7 +115,7 @@
       </div>
     </section>
 
-    <!-- หัวข้อทำแบบสอบถาม หน้าหลัก -->
+    <!-- Quiz Trigger Section -->
     <section class="mb-6">
       <div onclick="openQuizModal()" class="rounded-2xl bg-surface-container/95 p-4 border border-primary/40 cursor-pointer active:scale-95 transition-all shadow-lg hover:border-primary">
         <div class="flex items-center justify-between">
@@ -158,7 +141,7 @@
     </div>
 
     <!-- Grid 10 Items -->
-    <div class="grid grid-cols-2 gap-3 mb-6">
+    <div class="grid grid-cols-2 gap-3 mb-6" id="inventory-grid-container">
       <!-- 01: GPU (LOCKED) -->
       <div id="item-card-0" class="flex flex-col justify-between rounded-xl bg-surface-container-low p-3 opacity-60">
         <div class="flex items-center justify-between mb-2">
@@ -196,7 +179,7 @@
     </button>
   </div>
 
-  <!-- Popup Modal ทำแบบทดสอบ -->
+  <!-- Popup Modal ทำแบบทดสอบ (แก้ตัวเลือกให้ดูปกติ ไม่เรืองแสงล็อกคำตอบ) -->
   <div id="quiz-modal" class="fixed inset-0 z-[999999] hidden flex items-center justify-center bg-black/80 backdrop-blur-md px-4">
     <div class="w-full max-w-sm rounded-3xl bg-surface-container p-6 border border-primary/40 shadow-2xl relative">
       <button onclick="closeQuizModal()" class="absolute top-4 right-4 text-on-surface-variant hover:text-primary">
@@ -208,21 +191,20 @@
       </div>
       <div class="flex items-center justify-between mb-3">
         <span class="text-xs text-on-surface-variant">เลือกคำตอบที่ถูกต้องที่สุด</span>
-        <!-- คะแนนเริ่มต้น 100 XP หักครั้งละ 20 XP -->
         <span id="current-xp-reward" class="px-2.5 py-0.5 rounded-full bg-tertiary/20 text-tertiary text-xs font-bold">รางวัล: 100 XP</span>
       </div>
       <p class="text-sm mb-4 text-on-surface font-medium">หน้าที่หลักของ GPU ในคอมพิวเตอร์คือข้อใด?</p>
       <div class="flex flex-col gap-2">
-        <button onclick="answerQuiz(true)" class="w-full text-left p-3 rounded-xl bg-surface-container-high text-xs flex items-center justify-between border border-primary/40 text-primary font-semibold cursor-pointer hover:bg-surface-container-highest">
+        <button onclick="answerQuiz(true)" class="w-full text-left p-3 rounded-xl bg-surface-container-low text-xs flex items-center justify-between text-on-surface-variant cursor-pointer hover:bg-surface-container-high hover:text-on-surface transition-all">
           <span>A. ประมวลผลกราฟิกและภาพ 3D</span>
         </button>
-        <button onclick="answerQuiz(false)" class="w-full text-left p-3 rounded-xl bg-surface-container-low text-xs flex items-center justify-between text-on-surface-variant cursor-pointer hover:bg-surface-container-high">
+        <button onclick="answerQuiz(false)" class="w-full text-left p-3 rounded-xl bg-surface-container-low text-xs flex items-center justify-between text-on-surface-variant cursor-pointer hover:bg-surface-container-high hover:text-on-surface transition-all">
           <span>B. จัดเก็บไฟล์ระบบถาวร (Storage)</span>
         </button>
-        <button onclick="answerQuiz(false)" class="w-full text-left p-3 rounded-xl bg-surface-container-low text-xs flex items-center justify-between text-on-surface-variant cursor-pointer hover:bg-surface-container-high">
+        <button onclick="answerQuiz(false)" class="w-full text-left p-3 rounded-xl bg-surface-container-low text-xs flex items-center justify-between text-on-surface-variant cursor-pointer hover:bg-surface-container-high hover:text-on-surface transition-all">
           <span>C. จ่ายกระแสไฟฟ้าให้เมนบอร์ด</span>
         </button>
-        <button onclick="answerQuiz(false)" class="w-full text-left p-3 rounded-xl bg-surface-container-low text-xs flex items-center justify-between text-on-surface-variant cursor-pointer hover:bg-surface-container-high">
+        <button onclick="answerQuiz(false)" class="w-full text-left p-3 rounded-xl bg-surface-container-low text-xs flex items-center justify-between text-on-surface-variant cursor-pointer hover:bg-surface-container-high hover:text-on-surface transition-all">
           <span>D. ประมวลผลคำสั่งหลักของระบบ (CPU)</span>
         </button>
       </div>
@@ -231,13 +213,11 @@
 
   <!-- AR Camera Fullscreen View -->
   <div id="ar-view">
-    <!-- ปุ่มควบคุมด้านบน (เพิ่มปุ่มกดทำแบบทดสอบตรงนี้แล้ว!) -->
     <div class="absolute top-4 left-4 right-4 z-[100000] flex justify-between items-center pointer-events-auto">
       <button onclick="stopARScan()" class="px-3 py-2 rounded-full bg-surface-container-high/90 text-on-surface font-bold text-xs flex items-center gap-1 shadow-lg border border-primary/30 backdrop-blur cursor-pointer">
         <span class="material-symbols-outlined text-sm">arrow_back</span> ย้อนกลับ
       </button>
 
-      <!-- ปุ่มเปิดแบบทดสอบในหน้า AR -->
       <button onclick="openQuizModal()" class="px-3 py-2 rounded-full bg-primary text-on-primary font-bold text-xs flex items-center gap-1 shadow-lg cursor-pointer neon-pulse">
         <span class="material-symbols-outlined text-sm">quiz</span> ทำแบบทดสอบ (100 XP)
       </button>
@@ -247,8 +227,8 @@
       </button>
     </div>
 
-    <!-- การ์ดแสดงความรู้และข้อมูลโมเดล 3D -->
-    <div id="ar-info-card" class="absolute bottom-6 left-4 right-4 z-[100000] p-4 rounded-2xl bg-surface-container/95 border border-primary/40 backdrop-blur-xl shadow-2xl pointer-events-auto">
+    <!-- (แก้ปัญหาภาพที่ 1) ซ่อนการ์ดข้อมูลไว้ก่อน จนกว่าจะสแกนเจอเป้าหมายจริง -->
+    <div id="ar-info-card" class="absolute bottom-6 left-4 right-4 z-[100000] hidden p-4 rounded-2xl bg-surface-container/95 border border-primary/40 backdrop-blur-xl shadow-2xl pointer-events-auto">
       <div class="flex items-center justify-between mb-1">
         <h4 class="text-primary font-bold text-base">การ์ดจอ (GPU - RTX 4090)</h4>
         <span class="px-2 py-0.5 rounded-full bg-primary/20 text-primary text-[10px] font-bold">AR Active</span>
@@ -262,7 +242,6 @@
       </div>
     </div>
 
-    <!-- MindAR Scene เต็มจอ 100% -->
     <a-scene id="ar-scene-el" mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: no; uiError: no;" embedded color-space="sRGB" renderer="colorManagement: true; precision: medium; alpha: true;" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
       <a-ambient-light color="#ffffff" intensity="2.5"></a-ambient-light>
       <a-directional-light position="1 2 3" intensity="1.5"></a-directional-light>
@@ -333,12 +312,22 @@
     }
   </script>
 
-  <!-- Game Logic & Quiz Modal System (XP 100 -> Minus 20) -->
+  <!-- (แก้ปัญหาภาพที่ 3) ระบบบันทึกข้อมูลด้วย LocalStorage ไม่ให้หายตอนรีเฟรช -->
   <script>
-    let currentXP = 0;
-    let unlockedCount = 0;
-    let currentXPReward = 100; // คะแนนเริ่มต้น 100 XP
-    let hasUnlockedGPU = false;
+    let currentXP = parseInt(localStorage.getItem('ar_xp')) || 0;
+    let unlockedCount = parseInt(localStorage.getItem('ar_unlocked')) || 0;
+    let currentXPReward = parseInt(localStorage.getItem('ar_reward')) || 100;
+    let hasUnlockedGPU = unlockedCount > 0;
+
+    // โหลดสถานะตอนเปิดเว็บครั้งแรก
+    window.addEventListener('DOMContentLoaded', () => {
+      if (hasUnlockedGPU) {
+        applyUnlockedUI();
+      }
+      document.getElementById('progress-text').innerText = `ปลดล็อกแล้ว ${unlockedCount} / 10 ชิ้น`;
+      document.getElementById('xp-text').innerText = `${currentXP} XP`;
+      document.getElementById('current-xp-reward').innerText = `รางวัล: ${currentXPReward} XP`;
+    });
 
     function openQuizModal() {
       document.getElementById('quiz-modal').style.display = 'flex';
@@ -355,36 +344,44 @@
         unlockedCount = 1;
         hasUnlockedGPU = true;
 
+        // บันทึกลงหน่วยความจำเครื่อง (รีเฟรชไม่หาย)
+        localStorage.setItem('ar_xp', currentXP);
+        localStorage.setItem('ar_unlocked', unlockedCount);
+
         closeQuizModal();
         stopARScan();
+        applyUnlockedUI();
 
-        // อัปเดต UI หน้าหลัก
         document.getElementById('progress-text').innerText = `ปลดล็อกแล้ว ${unlockedCount} / 10 ชิ้น`;
         document.getElementById('xp-text').innerText = `${currentXP} XP`;
-        document.getElementById('p-0').className = "rounded bg-primary shadow-[0_0_8px_#4be277]";
-
-        const gpuCard = document.getElementById('item-card-0');
-        gpuCard.className = "relative flex flex-col justify-between rounded-xl bg-surface-container-high p-3 border border-primary/50 shadow-[0_0_15px_rgba(75,226,119,0.15)]";
-        gpuCard.innerHTML = `
-          <div class="flex items-center justify-between mb-2">
-            <span class="px-2 py-0.5 rounded-full bg-primary/20 text-primary text-[10px] font-bold">ปลดล็อกแล้ว</span>
-            <span class="material-symbols-outlined text-primary text-sm">verified</span>
-          </div>
-          <div class="w-full h-20 rounded-lg bg-surface-container-lowest flex items-center justify-center overflow-hidden mb-2">
-            <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuD6Y2VMcwNYS8OBl3wYmlib59JEielXcSYIpNmsoQmW2Yz8BgHUECYf1OJK56EHFKnZgXn-uCjGPK7e0dHDILwdFYVIKUk3o3eWMh5W2obeLhEFtztlpW5Lp2LCJ9fHGLZXEH-vBEFLnhnJ3ZagVjGXJhxg0geC97B96TcPHMpBa5jWgYFwWoEYaKSqLdxzpbh-ox4KlS-ZHBE_3pDi_I6_fjsDl3kYR4AGm9o4aNZi" class="object-cover w-full h-full"/>
-          </div>
-          <h4 class="font-bold text-sm">การ์ดจอ (GPU)</h4>
-          <p class="text-xs text-on-surface-variant mb-2">RTX 4090</p>
-          <button onclick="startARScan()" class="w-full py-1.5 rounded-lg bg-primary text-on-primary font-bold text-xs flex items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer">
-            <span class="material-symbols-outlined text-sm">view_in_ar</span> ดูโมเดล 3D อีกครั้ง
-          </button>
-        `;
       } else {
         // ตอบผิด หักครั้งละ 20 XP ขั้นต่ำเหลือ 20 XP
         currentXPReward = Math.max(20, currentXPReward - 20);
+        localStorage.setItem('ar_reward', currentXPReward);
         document.getElementById('current-xp-reward').innerText = `รางวัล: ${currentXPReward} XP`;
         alert(`❌ ยังไม่ถูกต้อง! โดนหัก 20 XP เหลือรางวัลรอบนี้: ${currentXPReward} XP (ลองเลือกข้ออื่นใหม่)`);
       }
+    }
+
+    function applyUnlockedUI() {
+      document.getElementById('p-0').className = "rounded bg-primary shadow-[0_0_8px_#4be277]";
+      const gpuCard = document.getElementById('item-card-0');
+      gpuCard.className = "relative flex flex-col justify-between rounded-xl bg-surface-container-high p-3 border border-primary/50 shadow-[0_0_15px_rgba(75,226,119,0.15)]";
+      gpuCard.innerHTML = `
+        <div class="flex items-center justify-between mb-2">
+          <span class="px-2 py-0.5 rounded-full bg-primary/20 text-primary text-[10px] font-bold">ปลดล็อกแล้ว</span>
+          <span class="material-symbols-outlined text-primary text-sm">verified</span>
+        </div>
+        <div class="w-full h-20 rounded-lg bg-surface-container-lowest flex items-center justify-center overflow-hidden mb-2">
+          <img src="https://raw.githubusercontent.com/Cottonswabuptheass/my-ar-card/main/gpu.glb" style="display:none;" />
+          <span class="material-symbols-outlined text-3xl text-primary">videogame_asset</span>
+        </div>
+        <h4 class="font-bold text-sm">การ์ดจอ (GPU)</h4>
+        <p class="text-xs text-on-surface-variant mb-2">RTX 4090</p>
+        <button onclick="startARScan()" class="w-full py-1.5 rounded-lg bg-primary text-on-primary font-bold text-xs flex items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer">
+          <span class="material-symbols-outlined text-sm">view_in_ar</span> ดูโมเดล 3D อีกครั้ง
+        </button>
+      `;
     }
   </script>
 
@@ -402,6 +399,7 @@
     const arView = document.getElementById('ar-view');
     const container = document.getElementById('ar-container');
     const freezeContainer = document.getElementById('camera-freeze-container');
+    const arInfoCard = document.getElementById('ar-info-card');
     
     let isTracked = false;
     let activeModelEntity = null;
@@ -425,6 +423,7 @@
 
     function stopARScan() {
       arView.style.display = 'none';
+      arInfoCard.style.display = 'none'; // ปิดการ์ดความเมื่อออก
       const sceneEl = document.getElementById('ar-scene-el');
       if (sceneEl && sceneEl.systems && sceneEl.systems['mindar-image-system']) {
         sceneEl.systems['mindar-image-system'].stop();
@@ -445,9 +444,11 @@
       modelWrapper.appendChild(modelEntity);
       targetEntity.appendChild(modelWrapper);
 
+      // (แก้ปัญหาภาพที่ 1) แสดงการ์ดความรู้ต่อเมื่อสแกนเป้าหมายเจอจริงๆ เท่านั้น
       targetEntity.addEventListener("targetFound", () => {
         if (!isTracked) {
           isTracked = true;
+          arInfoCard.style.display = 'block';
           freezeContainer.appendChild(modelWrapper);
           activeModelEntity = modelWrapper;
         }
@@ -460,6 +461,7 @@
       if (activeModelEntity) { activeModelEntity.remove(); activeModelEntity = null; }
       isTracked = false;
       currentScaleVal = 0.08;
+      arInfoCard.style.display = 'none'; // ซ่อนการ์ดตอนรีเซ็ต
       container.innerHTML = '';
       if (typeof gpuData !== 'undefined') { loadARItem(gpuData); }
     }
